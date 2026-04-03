@@ -1,10 +1,8 @@
-// Hand tracking pipeline: palm detection on main thread, landmark inference in workers.
-// Workers receive ImageBitmaps and do crop + preprocess + inference -- main thread stays light.
+// Hand tracking pipeline: ALL inference in workers. Main thread is pure orchestration.
+// - Palm detection: dedicated worker with GPU letterbox
+// - Landmark inference: two parallel workers with GPU affine warp
 
-import * as ort from 'onnxruntime-web/webgpu';
-import { generateAnchors, decodeDetections } from './anchors.js';
-import { weightedNMS, detectionToRect } from './nms.js';
-import { preprocessPalm } from './preprocessing.js';
+import { detectionToRect } from './nms.js';
 
 const PALM_MODEL_URL = '/models/palm_detection_lite.onnx';
 const LANDMARK_MODEL_URL = '/models/hand_landmark_full.onnx';
@@ -26,8 +24,57 @@ const logSlot = makeLogger(2000);
 const logLandmark = makeLogger(2000);
 
 /**
- * Wraps a Web Worker with a promise-based inference API.
- * Sends ImageBitmap + rect, receives projected landmarks.
+ * Wraps the palm detection worker.
+ */
+class PalmWorker {
+  constructor() {
+    this.worker = new Worker(
+      new URL('./palm-worker.js', import.meta.url),
+      { type: 'module' }
+    );
+    this.pendingResolve = null;
+    this.worker.onmessage = (e) => this._onMessage(e);
+  }
+
+  init(modelUrl) {
+    return new Promise((resolve, reject) => {
+      this.worker.onmessage = (e) => {
+        if (e.data.type === 'ready') {
+          console.log('Palm worker ready, GPU letterbox:', e.data.gpuLetterbox);
+          this.worker.onmessage = (ev) => this._onMessage(ev);
+          resolve();
+        } else if (e.data.type === 'error') {
+          reject(new Error(e.data.message));
+        }
+      };
+      this.worker.postMessage({ type: 'init', modelUrl });
+    });
+  }
+
+  detect(bitmap) {
+    return new Promise((resolve) => {
+      this.pendingResolve = resolve;
+      this.worker.postMessage({ type: 'detect', bitmap }, [bitmap]);
+    });
+  }
+
+  _onMessage(e) {
+    if (e.data.type === 'detections' && this.pendingResolve) {
+      const resolve = this.pendingResolve;
+      this.pendingResolve = null;
+      resolve({ detections: e.data.detections, letterbox: e.data.letterbox });
+    } else if (e.data.type === 'error') {
+      console.error('Palm worker error:', e.data.message);
+      if (this.pendingResolve) {
+        this.pendingResolve({ detections: [], letterbox: {} });
+        this.pendingResolve = null;
+      }
+    }
+  }
+}
+
+/**
+ * Wraps a landmark inference worker.
  */
 class LandmarkWorker {
   constructor() {
@@ -43,6 +90,7 @@ class LandmarkWorker {
     return new Promise((resolve, reject) => {
       this.worker.onmessage = (e) => {
         if (e.data.type === 'ready') {
+          console.log('Landmark worker ready, GPU warp:', e.data.gpuWarp);
           this.worker.onmessage = (ev) => this._onMessage(ev);
           resolve();
         } else if (e.data.type === 'error') {
@@ -58,7 +106,7 @@ class LandmarkWorker {
       this.pendingResolve = resolve;
       this.worker.postMessage(
         { type: 'infer', bitmap, rect, vw, vh },
-        [bitmap] // transfer bitmap (zero-copy)
+        [bitmap]
       );
     });
   }
@@ -86,11 +134,10 @@ class LandmarkWorker {
         handedness: e.data.handedness,
       });
     } else if (e.data.type === 'error') {
-      console.error('Worker error:', e.data.message);
+      console.error('Landmark worker error:', e.data.message);
       if (this.pendingResolve) {
-        const resolve = this.pendingResolve;
+        this.pendingResolve({ landmarks: [], handFlag: 0, handedness: 0 });
         this.pendingResolve = null;
-        resolve({ landmarks: [], handFlag: 0, handedness: 0 });
       }
     }
   }
@@ -98,64 +145,29 @@ class LandmarkWorker {
 
 export class HandTracker {
   constructor() {
-    this.palmSession = null;
-    this.anchors = null;
-    this.workers = [new LandmarkWorker(), new LandmarkWorker()];
+    this.palmWorker = new PalmWorker();
+    this.landmarkWorkers = [new LandmarkWorker(), new LandmarkWorker()];
     this.slots = [
-      { index: 0, worker: this.workers[0], active: false, rect: null, landmarks: null },
-      { index: 1, worker: this.workers[1], active: false, rect: null, landmarks: null },
+      { index: 0, worker: this.landmarkWorkers[0], active: false, rect: null, landmarks: null },
+      { index: 1, worker: this.landmarkWorkers[1], active: false, rect: null, landmarks: null },
     ];
     this.ready = false;
     this.running = false;
   }
 
   async init(onStatus) {
-    onStatus?.('Generating anchors...');
-    this.anchors = generateAnchors();
-
-    onStatus?.('Loading palm detection model...');
-    this.palmSession = await ort.InferenceSession.create(PALM_MODEL_URL, {
-      executionProviders: ['webgpu'],
-      graphOptimizationLevel: 'all',
-    });
-
-    const warmPalm = new ort.Tensor('float32', new Float32Array(192 * 192 * 3), [1, 192, 192, 3]);
-    await this.palmSession.run({ [this.palmSession.inputNames[0]]: warmPalm });
+    // Init all three workers sequentially (WebGPU EP requires it)
+    onStatus?.('Loading palm detection worker...');
+    await this.palmWorker.init(PALM_MODEL_URL);
 
     onStatus?.('Loading landmark worker 0...');
-    await this.workers[0].init(LANDMARK_MODEL_URL);
+    await this.landmarkWorkers[0].init(LANDMARK_MODEL_URL);
     onStatus?.('Loading landmark worker 1...');
-    await this.workers[1].init(LANDMARK_MODEL_URL);
+    await this.landmarkWorkers[1].init(LANDMARK_MODEL_URL);
 
-    console.log('Two landmark workers ready -- true parallel inference');
+    console.log('All workers ready -- main thread is pure orchestration');
     this.ready = true;
     onStatus?.('Ready');
-  }
-
-  async runPalmDetection(video) {
-    const { data, letterbox } = preprocessPalm(video);
-    const input = new ort.Tensor('float32', data, [1, 192, 192, 3]);
-
-    const results = await this.palmSession.run({
-      [this.palmSession.inputNames[0]]: input,
-    });
-
-    let regressors, scores;
-    for (const name of this.palmSession.outputNames) {
-      const t = results[name];
-      if (t.dims[t.dims.length - 1] === 18) regressors = t.data;
-      else scores = t.data;
-    }
-
-    let detections = decodeDetections(regressors, scores, this.anchors);
-    detections = weightedNMS(detections);
-
-    if (detections.length > 0) {
-      logPalm(`[palm] ${detections.length} detections`, detections.map(d =>
-        `score=${d.score.toFixed(2)} cx=${d.cx.toFixed(3)} cy=${d.cy.toFixed(3)}`
-      ));
-    }
-    return { detections, letterbox };
   }
 
   async processFrame(video) {
@@ -170,7 +182,14 @@ export class HandTracker {
       const emptySlots = this.slots.filter(s => !s.active);
 
       if (emptySlots.length > 0) {
-        const { detections, letterbox } = await this.runPalmDetection(video);
+        const palmBitmap = await createImageBitmap(video);
+        const { detections, letterbox } = await this.palmWorker.detect(palmBitmap);
+
+        if (detections.length > 0) {
+          logPalm(`[palm] ${detections.length} detections`, detections.map(d =>
+            `score=${d.score.toFixed(2)} cx=${d.cx.toFixed(3)} cy=${d.cy.toFixed(3)}`
+          ));
+        }
 
         for (const det of detections) {
           if (emptySlots.length === 0) break;
@@ -204,14 +223,11 @@ export class HandTracker {
         }
       }
 
-      // TRUE PARALLEL: create ImageBitmaps and send to workers simultaneously
+      // Parallel landmark inference via Promise.all
       const results = await Promise.all(this.slots.map(async (slot) => {
         if (!slot.active) return null;
 
-        // Create a bitmap from the current video frame (fast, GPU-backed)
         const bitmap = await createImageBitmap(video);
-
-        // Worker does: crop + preprocess + inference + projection
         const result = await slot.worker.infer(bitmap, slot.rect, vw, vh);
 
         if (result.handFlag > HAND_FLAG_THRESHOLD) {

@@ -1,0 +1,269 @@
+// Palm detection worker: receives ImageBitmap, does GPU letterbox + inference + decode + NMS.
+// Returns detections with keypoints, ready for slot assignment.
+
+import * as ort from 'onnxruntime-web/webgpu';
+import { generateAnchors, decodeDetections } from './anchors.js';
+import { weightedNMS } from './nms.js';
+
+ort.env.wasm.numThreads = 1;
+ort.env.wasm.proxy = false;
+
+const PALM_SIZE = 192;
+
+let session = null;
+let anchors = null;
+
+// WebGPU letterbox pipeline
+let gpuDevice = null;
+let letterboxPipeline = null;
+let outputBuffer = null;
+let readBuffer = null;
+let uniformBuffer = null;
+let sampler = null;
+let useGPU = false;
+
+const WGSL_LETTERBOX = `
+struct Uniforms {
+  scale: f32,
+  offset_x: f32,
+  offset_y: f32,
+  src_w: f32,
+  src_h: f32,
+}
+
+@group(0) @binding(0) var srcTexture: texture_2d<f32>;
+@group(0) @binding(1) var srcSampler: sampler;
+@group(0) @binding(2) var<storage, read_write> output: array<f32>;
+@group(0) @binding(3) var<uniform> u: Uniforms;
+
+@compute @workgroup_size(16, 16)
+fn main(@builtin(global_invocation_id) gid: vec3u) {
+  let x = gid.x;
+  let y = gid.y;
+  if (x >= ${PALM_SIZE}u || y >= ${PALM_SIZE}u) { return; }
+
+  let fx = f32(x) + 0.5;
+  let fy = f32(y) + 0.5;
+
+  // Undo letterbox: output pixel -> source pixel
+  let sx = (fx - u.offset_x) / u.scale;
+  let sy = (fy - u.offset_y) / u.scale;
+
+  // Check if inside source bounds
+  var r = 0.0; var g = 0.0; var b = 0.0;
+  if (sx >= 0.0 && sx < u.src_w && sy >= 0.0 && sy < u.src_h) {
+    let uv = vec2f(sx / u.src_w, sy / u.src_h);
+    let pixel = textureSampleLevel(srcTexture, srcSampler, uv, 0.0);
+    r = pixel.r;
+    g = pixel.g;
+    b = pixel.b;
+  }
+
+  let idx = (y * ${PALM_SIZE}u + x) * 3u;
+  output[idx]      = r;
+  output[idx + 1u] = g;
+  output[idx + 2u] = b;
+}
+`;
+
+async function initGPU() {
+  const adapter = await navigator.gpu.requestAdapter();
+  gpuDevice = await adapter.requestDevice();
+
+  const shaderModule = gpuDevice.createShaderModule({ code: WGSL_LETTERBOX });
+
+  letterboxPipeline = gpuDevice.createComputePipeline({
+    layout: 'auto',
+    compute: { module: shaderModule, entryPoint: 'main' },
+  });
+
+  const outputSize = PALM_SIZE * PALM_SIZE * 3 * 4;
+  outputBuffer = gpuDevice.createBuffer({
+    size: outputSize,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+  });
+  readBuffer = gpuDevice.createBuffer({
+    size: outputSize,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+  });
+  uniformBuffer = gpuDevice.createBuffer({
+    size: 32, // 5 floats padded to 32 bytes
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+  sampler = gpuDevice.createSampler({
+    magFilter: 'linear',
+    minFilter: 'linear',
+    addressModeU: 'clamp-to-edge',
+    addressModeV: 'clamp-to-edge',
+  });
+}
+
+async function gpuLetterbox(bitmap) {
+  const srcW = bitmap.width;
+  const srcH = bitmap.height;
+  const scale = PALM_SIZE / Math.max(srcW, srcH);
+  const dstW = Math.round(srcW * scale);
+  const dstH = Math.round(srcH * scale);
+  const offsetX = (PALM_SIZE - dstW) / 2;
+  const offsetY = (PALM_SIZE - dstH) / 2;
+
+  // Upload bitmap
+  const srcTexture = gpuDevice.createTexture({
+    size: [srcW, srcH],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+  });
+  gpuDevice.queue.copyExternalImageToTexture(
+    { source: bitmap },
+    { texture: srcTexture },
+    [srcW, srcH]
+  );
+
+  // Write uniforms (scale in pixels, not normalized)
+  gpuDevice.queue.writeBuffer(uniformBuffer, 0, new Float32Array([
+    scale, offsetX, offsetY, srcW, srcH, 0, 0, 0,
+  ]));
+
+  const bindGroup = gpuDevice.createBindGroup({
+    layout: letterboxPipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: srcTexture.createView() },
+      { binding: 1, resource: sampler },
+      { binding: 2, resource: { buffer: outputBuffer } },
+      { binding: 3, resource: { buffer: uniformBuffer } },
+    ],
+  });
+
+  const encoder = gpuDevice.createCommandEncoder();
+  const pass = encoder.beginComputePass();
+  pass.setPipeline(letterboxPipeline);
+  pass.setBindGroup(0, bindGroup);
+  pass.dispatchWorkgroups(Math.ceil(PALM_SIZE / 16), Math.ceil(PALM_SIZE / 16));
+  pass.end();
+  encoder.copyBufferToBuffer(outputBuffer, 0, readBuffer, 0, PALM_SIZE * PALM_SIZE * 3 * 4);
+  gpuDevice.queue.submit([encoder.finish()]);
+
+  await readBuffer.mapAsync(GPUMapMode.READ);
+  const data = new Float32Array(readBuffer.getMappedRange().slice(0));
+  readBuffer.unmap();
+  srcTexture.destroy();
+
+  const letterbox = {
+    scaleX: dstW / PALM_SIZE,
+    scaleY: dstH / PALM_SIZE,
+    offsetX: offsetX / PALM_SIZE,
+    offsetY: offsetY / PALM_SIZE,
+  };
+
+  return { data, letterbox };
+}
+
+// Canvas fallback
+const palmCanvas = new OffscreenCanvas(PALM_SIZE, PALM_SIZE);
+const palmCtx = palmCanvas.getContext('2d', { willReadFrequently: true });
+
+function canvasLetterbox(bitmap) {
+  const srcW = bitmap.width;
+  const srcH = bitmap.height;
+  const scale = PALM_SIZE / Math.max(srcW, srcH);
+  const dstW = Math.round(srcW * scale);
+  const dstH = Math.round(srcH * scale);
+  const offsetX = (PALM_SIZE - dstW) / 2;
+  const offsetY = (PALM_SIZE - dstH) / 2;
+
+  palmCtx.fillStyle = '#000';
+  palmCtx.fillRect(0, 0, PALM_SIZE, PALM_SIZE);
+  palmCtx.drawImage(bitmap, offsetX, offsetY, dstW, dstH);
+
+  const imageData = palmCtx.getImageData(0, 0, PALM_SIZE, PALM_SIZE);
+  const rgba = imageData.data;
+  const data = new Float32Array(PALM_SIZE * PALM_SIZE * 3);
+  for (let i = 0; i < PALM_SIZE * PALM_SIZE; i++) {
+    data[i * 3]     = rgba[i * 4]     / 255;
+    data[i * 3 + 1] = rgba[i * 4 + 1] / 255;
+    data[i * 3 + 2] = rgba[i * 4 + 2] / 255;
+  }
+
+  return {
+    data,
+    letterbox: {
+      scaleX: dstW / PALM_SIZE,
+      scaleY: dstH / PALM_SIZE,
+      offsetX: offsetX / PALM_SIZE,
+      offsetY: offsetY / PALM_SIZE,
+    },
+  };
+}
+
+self.onmessage = async (e) => {
+  const { type } = e.data;
+
+  if (type === 'init') {
+    try {
+      // Generate anchors
+      anchors = generateAnchors();
+
+      // Try GPU letterbox
+      if (typeof navigator !== 'undefined' && navigator.gpu) {
+        try {
+          await initGPU();
+          useGPU = true;
+          console.log('Palm worker: WebGPU letterbox enabled');
+        } catch (err) {
+          console.warn('Palm worker: GPU letterbox unavailable:', err.message);
+        }
+      }
+
+      // Load palm detection model
+      session = await ort.InferenceSession.create(e.data.modelUrl, {
+        executionProviders: ['webgpu'],
+        graphOptimizationLevel: 'all',
+      });
+
+      // Warmup
+      const warmup = new ort.Tensor('float32', new Float32Array(PALM_SIZE * PALM_SIZE * 3), [1, PALM_SIZE, PALM_SIZE, 3]);
+      await session.run({ [session.inputNames[0]]: warmup });
+
+      self.postMessage({ type: 'ready', gpuLetterbox: useGPU });
+    } catch (err) {
+      self.postMessage({ type: 'error', message: err.message });
+    }
+  }
+
+  if (type === 'detect') {
+    try {
+      const { bitmap } = e.data;
+
+      // GPU or canvas letterbox
+      const { data, letterbox } = useGPU
+        ? await gpuLetterbox(bitmap)
+        : canvasLetterbox(bitmap);
+
+      bitmap.close();
+
+      // Run inference
+      const input = new ort.Tensor('float32', data, [1, PALM_SIZE, PALM_SIZE, 3]);
+      const results = await session.run({ [session.inputNames[0]]: input });
+
+      // Decode
+      let regressors, scores;
+      for (const name of session.outputNames) {
+        const t = results[name];
+        if (t.dims[t.dims.length - 1] === 18) regressors = t.data;
+        else scores = t.data;
+      }
+
+      let detections = decodeDetections(regressors, scores, anchors);
+      detections = weightedNMS(detections);
+
+      // Send detections + letterbox back
+      self.postMessage({
+        type: 'detections',
+        detections,
+        letterbox,
+      });
+    } catch (err) {
+      self.postMessage({ type: 'error', message: err.message });
+    }
+  }
+};
