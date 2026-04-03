@@ -1,10 +1,10 @@
 # WebGPU Vision
 
-A from-scratch port of Google's MediaPipe hand tracking pipeline to run entirely on WebGPU compute shaders in the browser. No sealed WASM binary, no WebGL, no `glReadPixels` bottleneck. Nobody has done this publicly before.
+A port of Google's MediaPipe hand tracking pipeline to run on WebGPU compute shaders in the browser. No sealed WASM binary, no WebGL, no `glReadPixels` bottleneck.
 
 ## Why This Exists
 
-MediaPipe's browser SDK uses WebGL internally for inference with synchronous `glReadPixels` readbacks costing 8-22ms per call. Two-hand tracking drops to ~15fps. The WASM binary is sealed -- you can't optimize it. This project replaces the entire inference path with WebGPU compute shaders via ONNX Runtime Web, achieving 120fps two-hand tracking with zero CPU readback.
+MediaPipe's browser SDK uses WebGL internally for inference with synchronous `glReadPixels` readbacks costing 8-22ms per call. Two-hand tracking drops to ~15fps. The WASM binary is sealed -- you can't optimize it. This project replaces the inference path with WebGPU compute shaders via ONNX Runtime Web.
 
 ## Quick Start
 
@@ -75,7 +75,7 @@ Tracking loop skips palm detection when hands are found.
 |--------|----------------|---------------|
 | Two-hand tracking | ~15fps | 120fps |
 | CPU readback per hand | 8-22ms (glReadPixels) | 252 bytes (landmarks only) |
-| Pipeline visibility | Sealed WASM binary | Full source, every line |
+| Pipeline visibility | Sealed WASM binary | Full source |
 | Parallel two-hand | Serial (same WebGL context) | True parallel (separate workers) |
 
 ## Project Structure
