@@ -6,7 +6,7 @@ A port of Google's MediaPipe hand tracking pipeline to run on WebGPU compute sha
 
 MediaPipe's browser SDK uses WebGL internally for inference with synchronous `glReadPixels` readbacks costing 8-22ms per call. Two-hand tracking drops to ~15fps. The WASM binary is sealed; you can't optimize it. This project replaces the inference path with WebGPU compute shaders via ONNX Runtime Web, achieving 120fps two-hand tracking with zero CPU readback.
 
-The GPU to the CPU: "Hold my bear." 🧸
+The GPU turns to the CPU: "Hold my bear." 🧸
 
 ## Quick Start
 
