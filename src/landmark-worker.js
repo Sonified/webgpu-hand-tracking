@@ -249,7 +249,7 @@ self.onmessage = async (e) => {
       let tensor;
 
       if (useGPUDirect) {
-        // FULL GPU PATH: compute shader → GPU buffer → ONNX tensor (no CPU readback!)
+        // FULL GPU PATH: compute shader -> GPU buffer -> ONNX tensor (no CPU readback!)
         dispatchWarp(bitmap, inv);
         bitmap.close();
 

@@ -94,12 +94,13 @@ async function loop() {
       drawHands(result.hands);
     }
 
-    // FPS counter
+    // FPS + round-trip timing (update ~1/sec)
     frameCount++;
     const now = performance.now();
-    if (now - lastFpsTime > 500) {
+    if (now - lastFpsTime > 1000) {
       const fps = (frameCount / (now - lastFpsTime)) * 1000;
-      fpsEl.textContent = `${fps.toFixed(1)} fps | ${dt.toFixed(1)}ms`;
+      fpsEl.textContent = `${fps.toFixed(0)} fps | ${dt.toFixed(1)}ms`;
+      console.log(`[perf] ${fps.toFixed(0)} fps | ${result.hands.length} hands | processFrame ${dt.toFixed(2)}ms`);
       frameCount = 0;
       lastFpsTime = now;
     }
