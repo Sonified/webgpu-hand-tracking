@@ -83,18 +83,37 @@ Tested on MacBook Pro M1 Max (32-core GPU, 64GB), Chrome 146, macOS 26.2, 640x48
 | Pipeline visibility | Sealed WASM binary | Full source |
 | Parallel two-hand | Serial (same WebGL context) | True parallel (separate workers) |
 
+### Face Tracking
+
+Same machine, same browser, single face tracked. MediaPipe uses `@mediapipe/tasks-vision` FaceLandmarker with GPU delegate.
+
+| Metric | MediaPipe (Tasks Vision, GPU) | webgpu-vision |
+|--------|-------------------------------|---------------|
+| Single-face FPS | ~55fps | ~77fps |
+| Per-frame latency | ~16ms | ~10ms |
+| Landmarks | 478 | 478 |
+| Pipeline visibility | Sealed WASM binary | Full source |
+
+The face landmark model required a novel PReLU decomposition to run on WebGPU. See [PRELU_DECOMPOSITION.md](PRELU_DECOMPOSITION.md) for details.
+
 ## Project Structure
 
 ```
 src/
-  main.js              Entry point, webcam, render loop, overlay drawing
-  pipeline.js           HandTracker class, orchestration, worker management, landmarksToRect
-  palm-worker.js        Palm detection worker (GPU letterbox + inference + decode + NMS)
-  landmark-worker.js    Landmark inference worker (GPU affine warp + inference + projection)
-  anchors.js            Anchor generation + detection decoding for BlazePalm
-  nms.js                Weighted NMS + detectionToRect
-  preprocessing.js      Palm preprocessing (canvas fallback for palm worker)
-models/                 ONNX files (gitignored, see Quick Start)
+  main.js                  Hand tracking entry point, webcam, render loop
+  pipeline.js              HandTracker class, orchestration, worker management
+  palm-worker.js           Palm detection worker (GPU letterbox + inference + decode + NMS)
+  landmark-worker.js       Hand landmark worker (GPU affine warp + inference + projection)
+  anchors.js               Anchor generation + decoding for BlazePalm
+  nms.js                   Weighted NMS + detectionToRect for hands
+  preprocessing.js         Palm preprocessing (canvas fallback)
+  face-main.js             Face tracking entry point
+  face-pipeline.js         FaceTracker class, orchestration
+  face-detection-worker.js Face detection worker (GPU letterbox + BlazeFace inference)
+  face-landmark-worker.js  Face landmark worker (GPU warp + 478-point inference)
+  face-anchors.js          Anchor generation + decoding for BlazeFace
+  face-nms.js              Weighted NMS + faceDetectionToRect
+models/                    ONNX model files (Apache 2.0, see models/LICENSE.md)
 ```
 
 ## Requirements
