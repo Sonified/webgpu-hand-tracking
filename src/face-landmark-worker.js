@@ -10,7 +10,23 @@ const S = 256; // face landmark model input size
 const NUM_LANDMARKS = 478;
 const LANDMARK_FLOATS = NUM_LANDMARKS * 3; // 1434
 
+// 146 landmark indices used as input to the blendshape model
+// Source: mediapipe/tasks/cc/vision/face_landmarker/face_blendshapes_graph.cc
+const BLENDSHAPE_LANDMARK_INDICES = [
+  0, 1, 4, 5, 6, 7, 8, 10, 13, 14, 17, 21, 33, 37, 39, 40, 46, 52, 53, 54,
+  55, 58, 61, 63, 65, 66, 67, 70, 78, 80, 81, 82, 84, 87, 88, 91, 93, 95,
+  103, 105, 107, 109, 127, 132, 133, 136, 144, 145, 146, 148, 149, 150, 152,
+  153, 154, 155, 157, 158, 159, 160, 161, 162, 163, 168, 172, 173, 176, 178,
+  181, 185, 191, 195, 197, 234, 246, 249, 251, 263, 267, 269, 270, 276, 282,
+  283, 284, 285, 288, 291, 293, 295, 296, 297, 300, 308, 310, 311, 312, 314,
+  317, 318, 321, 323, 324, 332, 334, 336, 338, 356, 361, 362, 365, 373, 374,
+  375, 377, 378, 379, 380, 381, 382, 384, 385, 386, 387, 388, 389, 390, 397,
+  398, 400, 402, 405, 409, 415, 454, 466, 468, 469, 470, 471, 472, 473, 474,
+  475, 476, 477,
+];
+
 let session = null;
+let blendshapeSession = null;
 let outputMap = null;
 
 // WebGPU state
@@ -241,6 +257,19 @@ self.onmessage = async (e) => {
       console.log('Face landmark output map:', outputMap,
         'output names:', session.outputNames,
         'output sizes:', session.outputNames.map(n => results[n].data.length));
+
+      // Load blendshape model if URL provided
+      if (e.data.blendshapeUrl) {
+        blendshapeSession = await ort.InferenceSession.create(e.data.blendshapeUrl, {
+          executionProviders: ['webgpu'],
+          graphOptimizationLevel: 'all',
+        });
+        // Warmup
+        const bsWarmup = new ort.Tensor('float32', new Float32Array(146 * 2), [1, 146, 2]);
+        await blendshapeSession.run({ [blendshapeSession.inputNames[0]]: bsWarmup });
+        console.log('Face blendshape model loaded');
+      }
+
       self.postMessage({ type: 'ready', gpuDirect: useGPUDirect });
     } catch (err) {
       self.postMessage({ type: 'error', message: err.message });
@@ -316,11 +345,30 @@ self.onmessage = async (e) => {
         }
       }
 
+      // Run blendshape model if available -- takes 146 selected landmarks (x,y only)
+      let blendshapes = null;
+      if (blendshapeSession && rawLandmarks && rawLandmarks.length === LANDMARK_FLOATS) {
+        const bsInput = new Float32Array(146 * 2);
+        for (let i = 0; i < 146; i++) {
+          const idx = BLENDSHAPE_LANDMARK_INDICES[i];
+          bsInput[i * 2]     = rawLandmarks[idx * 3]     / S; // x normalized
+          bsInput[i * 2 + 1] = rawLandmarks[idx * 3 + 1] / S; // y normalized
+        }
+        const bsTensor = new ort.Tensor('float32', bsInput, [1, 146, 2]);
+        const bsResults = await blendshapeSession.run({ [blendshapeSession.inputNames[0]]: bsTensor });
+        blendshapes = new Float32Array(bsResults[blendshapeSession.outputNames[0]].data);
+      }
+
+      const transferables = [];
+      if (projectedLandmarks) transferables.push(projectedLandmarks.buffer);
+      if (blendshapes) transferables.push(blendshapes.buffer);
+
       self.postMessage({
         type: 'result',
         faceFlag,
         landmarks: projectedLandmarks ? projectedLandmarks.buffer : null,
-      }, projectedLandmarks ? [projectedLandmarks.buffer] : []);
+        blendshapes: blendshapes ? blendshapes.buffer : null,
+      }, transferables);
     } catch (err) {
       self.postMessage({ type: 'error', message: err.message });
     }

@@ -1,14 +1,20 @@
-// Entry point: webcam setup, pipeline init, render loop.
+// Entry point: webcam setup, hand + face tracking, render loop.
 
 import { HandTracker } from './pipeline.js';
+import { FaceTracker } from './face-pipeline.js';
 
 const video = document.getElementById('webcam');
 const overlay = document.getElementById('overlay');
 const ctx = overlay.getContext('2d');
 const statusEl = document.getElementById('status');
 const fpsEl = document.getElementById('fps');
+const trackHandsEl = document.getElementById('trackHands');
+const trackFaceEl = document.getElementById('trackFace');
 
-const tracker = new HandTracker();
+const handTracker = new HandTracker();
+const faceTracker = new FaceTracker();
+let handReady = false;
+let faceReady = false;
 
 // Hand landmark connections for drawing skeleton
 const CONNECTIONS = [
@@ -63,8 +69,23 @@ function drawHands(hands) {
   }
 }
 
-function drawDebug(debug) {
-  // Debug rects hidden -- uncomment to show bounding boxes
+function drawFaces(faces) {
+  for (const face of faces) {
+    const lm = face.landmarks;
+    if (!lm || lm.length === 0) continue;
+
+    const scaleX = overlay.width;
+    const scaleY = overlay.height;
+
+    for (let i = 0; i < lm.length; i++) {
+      const x = lm[i].x * scaleX;
+      const y = lm[i].y * scaleY;
+      ctx.beginPath();
+      ctx.arc(x, y, 1.5, 0, 2 * Math.PI);
+      ctx.fillStyle = i === 1 ? '#ff0' : '#0ff';
+      ctx.fill();
+    }
+  }
 }
 
 // FPS tracking
@@ -79,19 +100,29 @@ async function loop() {
 
   try {
     const t0 = performance.now();
-    const result = await tracker.processFrame(video);
+
+    // Run active trackers in parallel
+    const promises = [];
+    if (trackHandsEl.checked && handReady) promises.push(handTracker.processFrame(video));
+    if (trackFaceEl.checked && faceReady) promises.push(faceTracker.processFrame(video));
+
+    const results = await Promise.all(promises);
     const dt = performance.now() - t0;
 
     ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-    // Always draw debug info (rects + crop preview)
-    if (result.debug) {
-      drawDebug(result.debug);
-    }
+    let handCount = 0;
+    let faceCount = 0;
 
-    // Draw hand skeletons if landmarks are available
-    if (result.hands.length > 0) {
-      drawHands(result.hands);
+    for (const result of results) {
+      if (result.hands) {
+        handCount = result.hands.length;
+        if (handCount > 0) drawHands(result.hands);
+      }
+      if (result.faces) {
+        faceCount = result.faces.length;
+        if (faceCount > 0) drawFaces(result.faces);
+      }
     }
 
     // FPS + round-trip timing (update ~1/sec)
@@ -100,7 +131,11 @@ async function loop() {
     if (now - lastFpsTime > 1000) {
       const fps = (frameCount / (now - lastFpsTime)) * 1000;
       fpsEl.textContent = `${fps.toFixed(0)} fps | ${dt.toFixed(1)}ms`;
-      console.log(`[perf] ${fps.toFixed(0)} fps | ${result.hands.length} hands | processFrame ${dt.toFixed(2)}ms`);
+      const parts = [`${fps.toFixed(0)} fps`];
+      if (trackHandsEl.checked) parts.push(`${handCount} hands`);
+      if (trackFaceEl.checked) parts.push(`${faceCount} faces`);
+      parts.push(`${dt.toFixed(2)}ms`);
+      console.log(`[perf] ${parts.join(' | ')}`);
       frameCount = 0;
       lastFpsTime = now;
     }
@@ -114,6 +149,7 @@ async function loop() {
 async function main() {
   try {
     console.log('[main] starting');
+
     statusEl.textContent = 'Requesting camera...';
     await setupCamera();
     console.log('[main] camera ready:', video.videoWidth, 'x', video.videoHeight);
@@ -121,12 +157,47 @@ async function main() {
     overlay.width = video.videoWidth;
     overlay.height = video.videoHeight;
 
-    await tracker.init((msg) => {
-      console.log('[init]', msg);
+    // WebGPU in Workers requires cross-origin isolation headers
+    if (!crossOriginIsolated) {
+      console.warn('[main] Missing COOP/COEP headers -- tracking disabled, camera still works');
+      const cmd = 'npm run dev';
+      statusEl.innerHTML = `
+        <span style="color:#f90">WebGPU requires security headers, run the following command to start the dev server:</span>
+        <code style="margin-left:6px">${cmd}</code>
+        <button id="copyBtn" style="margin-left:6px; padding:4px 12px; cursor:pointer; font-size:0.8rem; width:60px; height:28px; vertical-align:middle; animation:pulse 2s infinite; background:#222; color:#0f0; border:1px solid #0f0; border-radius:4px; font-family:monospace">Copy</button>
+        <style>@keyframes pulse{0%,100%{box-shadow:0 0 4px #0f0}50%{box-shadow:0 0 12px #0f0}}</style>
+      `;
+      document.getElementById('copyBtn').onclick = () => {
+        navigator.clipboard.writeText(cmd);
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = '\u2713';
+        btn.style.fontSize = '1.2rem';
+        btn.style.animation = 'none';
+        btn.style.boxShadow = '0 0 8px #0f0';
+        setTimeout(() => { btn.textContent = 'Copy'; btn.style.fontSize = '0.8rem'; btn.style.animation = 'pulse 2s infinite'; btn.style.boxShadow = ''; }, 1500);
+      };
+      return;
+    }
+
+    // Init hand tracker (checked by default)
+    statusEl.textContent = 'Loading hand tracker...';
+    await handTracker.init((msg) => {
+      console.log('[hand init]', msg);
       statusEl.textContent = msg;
     });
+    handReady = true;
+    console.log('[main] hand tracker ready');
 
-    console.log('[main] tracker ready, starting loop');
+    // Init face tracker in background
+    statusEl.textContent = 'Loading face tracker...';
+    await faceTracker.init((msg) => {
+      console.log('[face init]', msg);
+      statusEl.textContent = msg;
+    });
+    faceReady = true;
+    console.log('[main] face tracker ready');
+
+    document.getElementById('controls').style.display = 'flex';
     statusEl.textContent = 'Tracking...';
     loop();
   } catch (err) {

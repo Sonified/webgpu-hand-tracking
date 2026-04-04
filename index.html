@@ -13,8 +13,13 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
       min-height: 100vh;
       padding: 20px;
+    }
+    #webcam, #overlay {
+      width: 800px;
+      transform: scaleX(-1);
     }
     h1 {
       font-size: 1.4rem;
@@ -55,12 +60,20 @@
   </style>
 </head>
 <body>
-  <h1>WebGPU Hand Tracking</h1>
+  <h1>WebGPU Vision</h1>
   <div id="status">Initializing...</div>
   <div id="container">
     <video id="webcam" autoplay playsinline></video>
     <canvas id="overlay"></canvas>
     <div id="fps"></div>
+  </div>
+  <div id="controls" style="margin-top: 12px; display: none; gap: 16px;">
+    <label style="cursor: pointer; user-select: none;">
+      <input type="checkbox" id="trackHands" checked> Hands
+    </label>
+    <label style="cursor: pointer; user-select: none;">
+      <input type="checkbox" id="trackFace"> Face
+    </label>
   </div>
   <script type="module" src="/src/main.js"></script>
 </body>

@@ -3,7 +3,7 @@
 // - Landmark inference: one worker with GPU affine warp (single face for now)
 
 import { faceDetectionToRect } from './face-nms.js';
-import { FACE_DETECTOR_URL, FACE_LANDMARK_URL } from './model-urls.js';
+import { FACE_DETECTOR_URL, FACE_LANDMARK_URL, FACE_BLENDSHAPE_URL } from './model-urls.js';
 const FACE_FLAG_THRESHOLD = 0.5;
 
 // Rate-limited logger
@@ -84,7 +84,7 @@ class FaceLandmarkWorker {
     this.worker.onmessage = (e) => this._onMessage(e);
   }
 
-  init(modelUrl) {
+  init(modelUrl, blendshapeUrl) {
     return new Promise((resolve, reject) => {
       this.worker.onmessage = (e) => {
         if (e.data.type === 'ready') {
@@ -95,7 +95,7 @@ class FaceLandmarkWorker {
           reject(new Error(e.data.message));
         }
       };
-      this.worker.postMessage({ type: 'init', modelUrl });
+      this.worker.postMessage({ type: 'init', modelUrl, blendshapeUrl });
     });
   }
 
@@ -126,9 +126,15 @@ class FaceLandmarkWorker {
         }
       }
 
+      let blendshapes = null;
+      if (e.data.blendshapes) {
+        blendshapes = new Float32Array(e.data.blendshapes);
+      }
+
       resolve({
         landmarks,
         faceFlag: e.data.faceFlag,
+        blendshapes,
       });
     } else if (e.data.type === 'error') {
       console.error('Face landmark worker error:', e.data.message);
@@ -159,7 +165,7 @@ export class FaceTracker {
     await this.detectWorker.init(FACE_DETECTOR_URL);
 
     onStatus?.('Loading face landmark worker...');
-    await this.landmarkWorker.init(FACE_LANDMARK_URL);
+    await this.landmarkWorker.init(FACE_LANDMARK_URL, FACE_BLENDSHAPE_URL);
 
     console.log('All face workers ready -- main thread is pure orchestration');
     this.ready = true;
@@ -237,7 +243,7 @@ export class FaceTracker {
         if (result.faceFlag > FACE_FLAG_THRESHOLD) {
           slot.landmarks = result.landmarks;
           slot.rect = this.landmarksToRect(result.landmarks, vw, vh);
-          return { landmarks: result.landmarks };
+          return { landmarks: result.landmarks, blendshapes: result.blendshapes };
         } else {
           slot.active = false;
           slot.landmarks = null;

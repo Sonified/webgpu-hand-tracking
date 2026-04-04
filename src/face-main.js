@@ -132,12 +132,34 @@ async function loop() {
 async function main() {
   try {
     console.log('[main] starting face tracking');
+
     statusEl.textContent = 'Requesting camera...';
     await setupCamera();
     console.log('[main] camera ready:', video.videoWidth, 'x', video.videoHeight);
 
     overlay.width = video.videoWidth;
     overlay.height = video.videoHeight;
+
+    if (!crossOriginIsolated) {
+      console.warn('[main] Missing COOP/COEP headers -- tracking disabled, camera still works');
+      const cmd = 'npm run dev';
+      statusEl.innerHTML = `
+        <span style="color:#f90">WebGPU requires security headers, run the following command to start the dev server:</span>
+        <code style="margin-left:6px">${cmd}</code>
+        <button id="copyBtn" style="margin-left:6px; padding:4px 12px; cursor:pointer; font-size:0.8rem; width:60px; height:28px; vertical-align:middle; animation:pulse 2s infinite; background:#222; color:#0f0; border:1px solid #0f0; border-radius:4px; font-family:monospace">Copy</button>
+        <style>@keyframes pulse{0%,100%{box-shadow:0 0 4px #0f0}50%{box-shadow:0 0 12px #0f0}}</style>
+      `;
+      document.getElementById('copyBtn').onclick = () => {
+        navigator.clipboard.writeText(cmd);
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = '\u2713';
+        btn.style.fontSize = '1.2rem';
+        btn.style.animation = 'none';
+        btn.style.boxShadow = '0 0 8px #0f0';
+        setTimeout(() => { btn.textContent = 'Copy'; btn.style.fontSize = '0.8rem'; btn.style.animation = 'pulse 2s infinite'; btn.style.boxShadow = ''; }, 1500);
+      };
+      return;
+    }
 
     await tracker.init((msg) => {
       console.log('[init]', msg);
