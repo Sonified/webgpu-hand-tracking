@@ -2,7 +2,7 @@
 
 Hand and face tracking running entirely on WebGPU compute shaders in the browser. No sealed WASM binary, no WebGL, no `glReadPixels` bottleneck.
 
-The GPU turns to the CPU like... "Hold my bear." 🧸
+The GPU turns to the CPU and says... "Hold my bear." 🧸
 
 ## Why This Exists
 
