@@ -273,7 +273,8 @@ self.onmessage = async (e) => {
 
       const rawLandmarks = outputMap.landmarks ? results[outputMap.landmarks].data : null;
       const handFlag = outputMap.handFlag ? results[outputMap.handFlag].data[0] : 0;
-      const handedness = outputMap.handedness ? results[outputMap.handedness].data[0] : 0;
+      const handednessRaw = outputMap.handedness ? results[outputMap.handedness].data[0] : 0.5;
+      const handedness = handednessRaw > 0.5 ? 'Right' : 'Left';
 
       // Project landmarks (only 63 floats come to CPU -- the ONLY readback)
       let projectedLandmarks = null;

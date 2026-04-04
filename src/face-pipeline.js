@@ -99,11 +99,11 @@ class FaceLandmarkWorker {
     });
   }
 
-  infer(bitmap, rect, vw, vh) {
+  infer(bitmap, rect, vw, vh, runBlendshapes = true) {
     return new Promise((resolve) => {
       this.pendingResolve = resolve;
       this.worker.postMessage(
-        { type: 'infer', bitmap, rect, vw, vh },
+        { type: 'infer', bitmap, rect, vw, vh, runBlendshapes },
         [bitmap]
       );
     });
@@ -126,15 +126,11 @@ class FaceLandmarkWorker {
         }
       }
 
-      let blendshapes = null;
-      if (e.data.blendshapes) {
-        blendshapes = new Float32Array(e.data.blendshapes);
-      }
-
       resolve({
         landmarks,
         faceFlag: e.data.faceFlag,
-        blendshapes,
+        rawLandmarks: e.data.rawLandmarks,
+        modelSize: e.data.modelSize,
       });
     } else if (e.data.type === 'error') {
       console.error('Face landmark worker error:', e.data.message);
@@ -146,10 +142,57 @@ class FaceLandmarkWorker {
   }
 }
 
+/**
+ * Wraps the blendshape inference worker.
+ */
+class BlendshapeWorker {
+  constructor() {
+    this.worker = new Worker(
+      new URL('./face-blendshape-worker.js', import.meta.url),
+      { type: 'module' }
+    );
+    this.pendingResolve = null;
+    this.worker.onmessage = (e) => this._onMessage(e);
+    this.lastBlendshapes = null; // cache latest result
+  }
+
+  init(modelUrl) {
+    return new Promise((resolve, reject) => {
+      this.worker.onmessage = (e) => {
+        if (e.data.type === 'ready') {
+          console.log('Blendshape worker ready');
+          this.worker.onmessage = (ev) => this._onMessage(ev);
+          resolve();
+        } else if (e.data.type === 'error') {
+          reject(new Error(e.data.message));
+        }
+      };
+      this.worker.postMessage({ type: 'init', modelUrl });
+    });
+  }
+
+  // Fire and forget -- don't await, just grab latest result
+  infer(rawLandmarks, modelSize) {
+    this.worker.postMessage(
+      { type: 'infer', rawLandmarks, modelSize },
+      [rawLandmarks]
+    );
+  }
+
+  _onMessage(e) {
+    if (e.data.type === 'result') {
+      this.lastBlendshapes = new Float32Array(e.data.blendshapes);
+    } else if (e.data.type === 'error') {
+      console.error('Blendshape worker error:', e.data.message);
+    }
+  }
+}
+
 export class FaceTracker {
   constructor() {
     this.detectWorker = new FaceDetectionWorker();
     this.landmarkWorker = new FaceLandmarkWorker();
+    this.blendshapeWorker = new BlendshapeWorker();
     this.slots = [
       { index: 0, worker: this.landmarkWorker, active: false, rect: null, landmarks: null },
     ];
@@ -165,14 +208,17 @@ export class FaceTracker {
     await this.detectWorker.init(FACE_DETECTOR_URL);
 
     onStatus?.('Loading face landmark worker...');
-    await this.landmarkWorker.init(FACE_LANDMARK_URL, FACE_BLENDSHAPE_URL);
+    await this.landmarkWorker.init(FACE_LANDMARK_URL);
+
+    onStatus?.('Loading blendshape worker...');
+    await this.blendshapeWorker.init(FACE_BLENDSHAPE_URL);
 
     console.log('All face workers ready -- main thread is pure orchestration');
     this.ready = true;
     onStatus?.('Ready');
   }
 
-  async processFrame(video) {
+  async processFrame(video, { runBlendshapes = true } = {}) {
     if (!this.ready || this.running) return { faces: [] };
     this.running = true;
 
@@ -243,7 +289,16 @@ export class FaceTracker {
         if (result.faceFlag > FACE_FLAG_THRESHOLD) {
           slot.landmarks = result.landmarks;
           slot.rect = this.landmarksToRect(result.landmarks, vw, vh);
-          return { landmarks: result.landmarks, blendshapes: result.blendshapes };
+
+          // Fire blendshapes async -- don't wait, grab latest from previous frame
+          if (runBlendshapes && result.rawLandmarks) {
+            this.blendshapeWorker.infer(result.rawLandmarks, result.modelSize);
+          }
+
+          return {
+            landmarks: result.landmarks,
+            blendshapes: this.blendshapeWorker.lastBlendshapes,
+          };
         } else {
           slot.active = false;
           slot.landmarks = null;

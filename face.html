@@ -67,9 +67,14 @@
     <canvas id="overlay"></canvas>
     <div id="fps"></div>
   </div>
-  <label style="margin-top: 12px; cursor: pointer; user-select: none;">
-    <input type="checkbox" id="showDebug" checked> Show bounding box
-  </label>
+  <div style="margin-top: 12px; display: flex; gap: 16px;">
+    <label style="cursor: pointer; user-select: none;">
+      <input type="checkbox" id="showDebug" checked> Bounding box
+    </label>
+    <label style="cursor: pointer; user-select: none;">
+      <input type="checkbox" id="enableBlendshapes" checked> Blendshapes
+    </label>
+  </div>
   <script type="module" src="/src/face-main.js"></script>
 </body>
 </html>

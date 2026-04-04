@@ -45,10 +45,13 @@ function drawHands(hands) {
     const lm = hand.landmarks;
     if (!lm || lm.length === 0) continue;
 
+    const isLeft = hand.handedness === 'Left';
+    const lineColor = isLeft ? 'rgba(0, 255, 100, 0.8)' : 'rgba(100, 150, 255, 0.8)';
+    const dotColor = isLeft ? '#0f0' : '#59f';
     const scaleX = overlay.width;
     const scaleY = overlay.height;
 
-    ctx.strokeStyle = 'rgba(0, 255, 100, 0.8)';
+    ctx.strokeStyle = lineColor;
     ctx.lineWidth = 2;
     for (const [a, b] of CONNECTIONS) {
       if (a >= lm.length || b >= lm.length) continue;
@@ -63,7 +66,7 @@ function drawHands(hands) {
       const y = lm[i].y * scaleY;
       ctx.beginPath();
       ctx.arc(x, y, 4, 0, 2 * Math.PI);
-      ctx.fillStyle = i === 0 ? '#ff0' : '#0f0';
+      ctx.fillStyle = i === 0 ? '#ff0' : dotColor;
       ctx.fill();
     }
   }

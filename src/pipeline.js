@@ -134,7 +134,7 @@ class LandmarkWorker {
     } else if (e.data.type === 'error') {
       console.error('Landmark worker error:', e.data.message);
       if (this.pendingResolve) {
-        this.pendingResolve({ landmarks: [], handFlag: 0, handedness: 0 });
+        this.pendingResolve({ landmarks: [], handFlag: 0, handedness: null });
         this.pendingResolve = null;
       }
     }
@@ -249,7 +249,16 @@ export class HandTracker {
         }
       }));
 
-      logLandmark(`[tracking] slots: ${this.slots.map(s => s.active ? '1' : '0').join(',')}`);
+      // Stable handedness: slot 0 = Left, slot 1 = Right
+      // If both active and labels are swapped, swap slot tracking data
+      if (this.slots[0].active && this.slots[1].active &&
+          results[0]?.handedness === 'Right' && results[1]?.handedness === 'Left') {
+        [this.slots[0].rect, this.slots[1].rect] = [this.slots[1].rect, this.slots[0].rect];
+        [this.slots[0].landmarks, this.slots[1].landmarks] = [this.slots[1].landmarks, this.slots[0].landmarks];
+        [results[0], results[1]] = [results[1], results[0]];
+      }
+
+      logLandmark(`[tracking] slots: ${this.slots.map(s => s.active ? (s === this.slots[0] ? 'L' : 'R') : '_').join(',')}`);
 
       return {
         hands: results.filter(Boolean),

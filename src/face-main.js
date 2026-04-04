@@ -97,7 +97,9 @@ async function loop() {
 
   try {
     const t0 = performance.now();
-    const result = await tracker.processFrame(video);
+    const result = await tracker.processFrame(video, {
+      runBlendshapes: document.getElementById('enableBlendshapes').checked,
+    });
     const dt = performance.now() - t0;
 
     ctx.clearRect(0, 0, overlay.width, overlay.height);
