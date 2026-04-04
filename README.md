@@ -1,39 +1,41 @@
 # WebGPU Vision
 
-A port of Google's MediaPipe hand tracking pipeline to run on WebGPU compute shaders in the browser. No sealed WASM binary, no WebGL, no `glReadPixels` bottleneck.
+Hand and face tracking running entirely on WebGPU compute shaders in the browser. No sealed WASM binary, no WebGL, no `glReadPixels` bottleneck.
+
+The GPU turns to the CPU like... "Hold my bear." 🧸
 
 ## Why This Exists
 
-MediaPipe's browser SDK uses WebGL internally for inference with synchronous readbacks. Two-hand tracking tops out around 47fps at ~19ms per frame. The WASM binary is sealed; you can't optimize it. This project replaces the inference path with WebGPU compute shaders via ONNX Runtime Web -- 72fps two-hand tracking with ~13ms per frame and zero CPU readback.
-
-The GPU turns to the CPU like... "Hold my bear." 🧸
+MediaPipe's browser SDK uses WebGL internally for inference with synchronous readbacks. This project replaces the inference path with WebGPU compute shaders via ONNX Runtime Web -- zero CPU readback during inference, true parallel workers, and full pipeline visibility.
 
 ## Quick Start
 
 ```bash
 npm install
-
-# Download the ONNX models
-mkdir -p models
-curl -L "https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models/palm_detection_mediapipe/palm_detection_mediapipe_2023feb.onnx" \
-  -o models/palm_detection_lite.onnx
-curl -L "https://huggingface.co/opencv/handpose_estimation_mediapipe/resolve/main/handpose_estimation_mediapipe_2023feb.onnx" \
-  -o models/hand_landmark_full.onnx
-
 npm run dev
 ```
 
-Open http://localhost:5173 in Chrome 113+ (or any browser with WebGPU support). Allow camera access.
+Open http://localhost:5173 for hand tracking, or http://localhost:5173/face.html for face tracking. Chrome 113+ (or any browser with WebGPU support). Allow camera access.
+
+Models are included in the repo (Apache 2.0). No separate downloads needed.
 
 ## Architecture
 
+### Hand Tracking
+
 Three Web Workers, all GPU-accelerated. Main thread is pure orchestration.
 
-- **Palm Worker**: WebGPU compute shader letterbox preprocessing + BlazePalm ONNX inference + anchor decode + weighted NMS. Runs async, fire-and-forget, never blocks tracking.
-- **Landmark Worker 0**: WebGPU compute shader affine warp + Hand Landmark ONNX inference (hand 0). Shares ONNX RT's WebGPU device via `ort.env.webgpu.device`. `Tensor.fromGpuBuffer()` passes the warp output directly to inference with zero CPU readback.
-- **Landmark Worker 1**: Same as above for hand 1. Both run in parallel via `Promise.all`.
+- **Palm Worker**: WebGPU compute shader letterbox + BlazePalm inference + anchor decode + weighted NMS. Fire-and-forget, never blocks tracking.
+- **Landmark Worker 0 + 1**: WebGPU compute shader affine warp + Hand Landmark inference. `Tensor.fromGpuBuffer()` passes warp output directly to inference with zero CPU readback. Both run in parallel via `Promise.all`.
 
-Main thread only does: `createImageBitmap(video)`, `postMessage` to workers, `landmarksToRect` math (12 points), and canvas overlay drawing. No ONNX imports, no preprocessing, no inference.
+### Face Tracking
+
+Two Web Workers, same GPU architecture.
+
+- **Face Detection Worker**: WebGPU compute shader letterbox + BlazeFace inference (128x128, 896 anchors) + anchor decode + weighted NMS. Fire-and-forget.
+- **Face Landmark Worker**: WebGPU compute shader affine warp + Face Mesh inference (256x256, 478 landmarks). Same zero-copy `Tensor.fromGpuBuffer()` path.
+
+The face landmark model required a PReLU decomposition to run on WebGPU -- see [PRELU_DECOMPOSITION.md](PRELU_DECOMPOSITION.md).
 
 ## Pipeline
 
@@ -43,58 +45,53 @@ Camera Frame (640x480)
     v
 createImageBitmap (main thread, fast GPU op)
     |
-    ├──> Palm Worker (when empty slots exist, fire-and-forget)
-    |      GPU letterbox compute shader -> BlazePalm inference -> anchor decode -> weighted NMS
-    |      Returns detections with keypoints
-    |
-    ├──> Landmark Worker 0 (Promise.all, parallel)
-    |      GPU affine warp compute shader -> Tensor.fromGpuBuffer -> ONNX inference
-    |      Data never leaves GPU until 63 landmark floats (252 bytes) return
-    |
-    └──> Landmark Worker 1 (Promise.all, parallel)
-           Same as above for second hand
-    |
-    v
-Main thread receives landmarks, computes next-frame ROI from stable
-palm/MCP landmarks, draws 21-point skeleton overlay.
-Tracking loop skips palm detection when hands are found.
+    |  HAND TRACKING                         FACE TRACKING
+    |                                        
+    ├──> Palm Worker (fire-and-forget)       ├──> Face Detection Worker (fire-and-forget)
+    |      GPU letterbox -> BlazePalm        |      GPU letterbox -> BlazeFace
+    |      -> anchor decode -> weighted NMS  |      -> anchor decode -> weighted NMS
+    |                                        |
+    ├──> Landmark Worker 0 ──┐               └──> Face Landmark Worker
+    └──> Landmark Worker 1 ──┤ Promise.all         GPU warp -> Tensor.fromGpuBuffer
+                             |                     -> 478-landmark inference
+    GPU warp -> Tensor.fromGpuBuffer               -> 1434 floats return to CPU
+    -> 21-landmark inference                 
+    -> 63 floats return to CPU               
+    |                                        
+    v                                        
+Main thread: landmarksToRect, draw overlay, tracking loop
 ```
 
-## Key Technical Decisions
-
-- **OpenCV Zoo ONNX models** (Apache 2.0): `palm_detection_mediapipe_2023feb.onnx` (3.7MB, 192x192 input, [0,1] normalization) and `handpose_estimation_mediapipe_2023feb.onnx` (3.9MB, 224x224 input, [0,1] normalization). NOT the PINTO post-processed models which have NMS baked in.
-- **Anchor generation**: 2016 anchors, strides [8,16,16,16], 2 anchors per grid cell, fixed anchor size. Scores are raw logits (sigmoid applied in decode).
-- **Weighted NMS** (not standard suppress and discard): overlapping detections averaged by score.
-- **Detection-to-rotated-rect**: ported from geaxgx reference. Works in pixel space, square_long=true (longer side * 2.9), shift_y=-0.5 in rotated direction.
-- **Landmarks-to-rect**: uses 12 stable palm/MCP landmarks (IDs 0,1,2,3,5,6,9,10,13,14,17,18), no fingertips. Rotation from wrist to weighted average of 3 MCPs. Bounds computed in rotated coordinate space.
-- **Affine warp**: 3-point affine transform matching mediapipe_utils.py `warp_rect_img()`. Corner ordering: p0(BL), p1(TL), p2(TR), p3(BR). Warp uses pts[1:] = [TL, TR, BR] mapped to [(0,0), (S,0), (S,S)].
-- **Zero CPU readback**: Each landmark worker gets ONNX RT's device via `await ort.env.webgpu.device` (after session creation), builds compute shader on that device, uses `Tensor.fromGpuBuffer()` to pass warp output directly to inference.
-- **Web Workers for true parallelism**: ONNX RT's WASM backend shares memory within a thread, so concurrent `.run()` calls on the same thread deadlock. Separate workers = separate WASM instances = true parallel inference.
+Data never leaves GPU until the final landmark coordinates return (252 bytes per hand, 5.7KB per face).
 
 ## Performance
 
-Tested on MacBook Pro M1 Max (32-core GPU, 64GB), Chrome 146, macOS 26.2, 640x480 camera, two hands tracked. MediaPipe uses its official `@mediapipe/tasks-vision` HandLandmarker with GPU delegate. See [benchmark/](benchmark/) to reproduce.
+Tested on MacBook Pro M1 Max (32-core GPU, 64GB), Chrome 146, macOS 26.2, 640x480 camera. MediaPipe uses its official `@mediapipe/tasks-vision` with GPU delegate. See [benchmark/](benchmark/) to reproduce.
 
-| Metric | MediaPipe (Tasks Vision, GPU) | webgpu-vision |
-|--------|-------------------------------|---------------|
-| Two-hand FPS | ~47fps | ~72fps |
+### Hand Tracking (two hands)
+
+| Metric | MediaPipe | webgpu-vision |
+|--------|-----------|---------------|
+| FPS | ~47fps | ~72fps |
 | Per-frame latency | ~19ms | ~13ms |
 | CPU readback | Full frame via WebGL | 252 bytes (landmarks only) |
-| Pipeline visibility | Sealed WASM binary | Full source |
 | Parallel two-hand | Serial (same WebGL context) | True parallel (separate workers) |
 
-### Face Tracking
+### Face Tracking (single face, 478 landmarks)
 
-Same machine, same browser, single face tracked. MediaPipe uses `@mediapipe/tasks-vision` FaceLandmarker with GPU delegate.
-
-| Metric | MediaPipe (Tasks Vision, GPU) | webgpu-vision |
-|--------|-------------------------------|---------------|
-| Single-face FPS | ~55fps | ~77fps |
+| Metric | MediaPipe | webgpu-vision |
+|--------|-----------|---------------|
+| FPS | ~55fps | ~77fps |
 | Per-frame latency | ~16ms | ~10ms |
-| Landmarks | 478 | 478 |
-| Pipeline visibility | Sealed WASM binary | Full source |
+| CPU readback | Full frame via WebGL | 5.7 KB (landmarks only) |
 
-The face landmark model required a novel PReLU decomposition to run on WebGPU. See [PRELU_DECOMPOSITION.md](PRELU_DECOMPOSITION.md) for details.
+## Key Technical Decisions
+
+- **Zero CPU readback**: Workers get ONNX RT's device via `ort.env.webgpu.device`, build compute shaders on the same device, and use `Tensor.fromGpuBuffer()` to pass warp output directly to inference.
+- **Web Workers for true parallelism**: ONNX RT's WASM backend shares memory within a thread, so concurrent `.run()` calls deadlock. Separate workers = separate WASM instances = true parallel inference.
+- **Weighted NMS** (not standard suppress and discard): overlapping detections averaged by score, matching MediaPipe's internal approach.
+- **PReLU decomposition**: The face landmark model's 69 PReLU ops aren't supported by ONNX RT's WebGPU backend. Decomposing `PReLU(x, slope)` into `Relu(x) + slope * (-Relu(-x))` keeps everything on GPU. Same math, zero accuracy loss, 12x speedup (9fps to 77fps). See [PRELU_DECOMPOSITION.md](PRELU_DECOMPOSITION.md).
+- **Model URL auto-switching**: `model-urls.js` serves from local `/models/` on localhost, from `https://models.now.audio/` in production. Zero config.
 
 ## Project Structure
 
@@ -113,8 +110,20 @@ src/
   face-landmark-worker.js  Face landmark worker (GPU warp + 478-point inference)
   face-anchors.js          Anchor generation + decoding for BlazeFace
   face-nms.js              Weighted NMS + faceDetectionToRect
+  model-urls.js            Auto-switching model URLs (local dev / CDN production)
 models/                    ONNX model files (Apache 2.0, see models/LICENSE.md)
 ```
+
+## Models
+
+All models are Apache 2.0 licensed. Hand models from [OpenCV Zoo](https://github.com/opencv/opencv_zoo). Face models converted from Google's [MediaPipe .task bundle](https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task) via tf2onnx, with PReLU decomposition for WebGPU compatibility.
+
+| Model | Input | Output | Size |
+|-------|-------|--------|------|
+| Palm detection | (1, 192, 192, 3) float32 [0,1] | 2016 anchor boxes + scores | 3.7 MB |
+| Hand landmark | (1, 224, 224, 3) float32 [0,1] | 21 keypoints (x,y,z) + hand flag + handedness | 3.9 MB |
+| Face detection | (1, 128, 128, 3) float32 [0,1] | 896 anchor boxes + scores | 409 KB |
+| Face landmark | (1, 256, 256, 3) float32 [0,1] | 478 landmarks (x,y,z) + face flag | 4.8 MB |
 
 ## Requirements
 
@@ -122,19 +131,10 @@ models/                    ONNX model files (Apache 2.0, see models/LICENSE.md)
 - A device with a camera
 - Node.js 18+ (for the dev server)
 
-## Models
-
-Uses Google's MediaPipe hand tracking models converted to ONNX format by the OpenCV Zoo team (Apache 2.0 license):
-
-| Model | Input | Output | Size |
-|-------|-------|--------|------|
-| Palm detection | (1, 192, 192, 3) float32 [0,1] | 2016 anchor boxes + scores | 3.7 MB |
-| Hand landmark | (1, 224, 224, 3) float32 [0,1] | 21 keypoints (x,y,z) + hand flag + handedness | 3.9 MB |
-
 ## Acknowledgments
 
-- Google MediaPipe team for the trained models and published research
-- [OpenCV Zoo](https://github.com/opencv/opencv_zoo) for ONNX model conversions
+- Google MediaPipe team for the trained models and published research (Apache 2.0)
+- [OpenCV Zoo](https://github.com/opencv/opencv_zoo) for hand model ONNX conversions
 - [PINTO0309](https://github.com/PINTO0309) for the reference Python implementation
 - [geaxgx](https://github.com/geaxgx/depthai_hand_tracker) for the clearest reference glue code
 - Microsoft ONNX Runtime team for the WebGPU execution provider

@@ -3,9 +3,7 @@
 // - Landmark inference: two parallel workers with GPU affine warp
 
 import { detectionToRect } from './nms.js';
-
-const PALM_MODEL_URL = '/models/palm_detection_lite.onnx';
-const LANDMARK_MODEL_URL = '/models/hand_landmark_full.onnx';
+import { PALM_MODEL_URL, HAND_LANDMARK_URL as LANDMARK_MODEL_URL } from './model-urls.js';
 const HAND_FLAG_THRESHOLD = 0.5;
 
 // Rate-limited logger

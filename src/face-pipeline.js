@@ -3,9 +3,7 @@
 // - Landmark inference: one worker with GPU affine warp (single face for now)
 
 import { faceDetectionToRect } from './face-nms.js';
-
-const FACE_DETECTOR_URL = '/models/face_detector.onnx';
-const FACE_LANDMARK_URL = '/models/face_landmarks_detector.onnx';
+import { FACE_DETECTOR_URL, FACE_LANDMARK_URL } from './model-urls.js';
 const FACE_FLAG_THRESHOLD = 0.5;
 
 // Rate-limited logger
