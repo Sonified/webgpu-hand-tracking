@@ -57,23 +57,31 @@
       font-size: 0.8rem;
       font-family: monospace;
     }
+    .bs-panel::-webkit-scrollbar { width: 4px; }
+    .bs-panel::-webkit-scrollbar-track { background: #111; }
+    .bs-panel::-webkit-scrollbar-thumb { background: #4af; border-radius: 2px; }
   </style>
 </head>
 <body>
   <h1>WebGPU Face Tracking</h1>
   <div id="status">Initializing...</div>
-  <div id="container">
-    <video id="webcam" autoplay playsinline></video>
-    <canvas id="overlay"></canvas>
-    <div id="fps"></div>
-  </div>
-  <div style="margin-top: 12px; display: flex; gap: 16px;">
-    <label style="cursor: pointer; user-select: none;">
-      <input type="checkbox" id="showDebug" checked> Bounding box
-    </label>
-    <label style="cursor: pointer; user-select: none;">
-      <input type="checkbox" id="enableBlendshapes" checked> Blendshapes
-    </label>
+  <div style="display: flex; gap: 20px; align-items: flex-start;">
+    <div>
+      <div id="container">
+        <video id="webcam" autoplay playsinline></video>
+        <canvas id="overlay"></canvas>
+        <div id="fps"></div>
+      </div>
+      <div style="margin-top: 12px; display: flex; gap: 16px;">
+        <label style="cursor: pointer; user-select: none;">
+          <input type="checkbox" id="showDebug" checked> Bounding box
+        </label>
+        <label style="cursor: pointer; user-select: none;">
+          <input type="checkbox" id="enableBlendshapes" checked> Blendshapes
+        </label>
+      </div>
+    </div>
+    <div id="blendshapePanel" class="bs-panel" style="display: none; width: 280px; max-height: 600px; overflow-y: auto; font-family: monospace; font-size: 0.7rem;"></div>
   </div>
   <script type="module" src="/src/face-main.js"></script>
 </body>

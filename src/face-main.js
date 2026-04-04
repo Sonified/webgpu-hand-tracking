@@ -10,6 +10,54 @@ const fpsEl = document.getElementById('fps');
 
 const tracker = new FaceTracker();
 const showDebugCheckbox = document.getElementById('showDebug');
+const blendshapePanel = document.getElementById('blendshapePanel');
+const enableBlendshapesCheckbox = document.getElementById('enableBlendshapes');
+
+const BLENDSHAPE_NAMES = [
+  '_neutral', 'browDownLeft', 'browDownRight', 'browInnerUp',
+  'browOuterUpLeft', 'browOuterUpRight', 'cheekPuff',
+  'cheekSquintLeft', 'cheekSquintRight', 'eyeBlinkLeft',
+  'eyeBlinkRight', 'eyeLookDownLeft', 'eyeLookDownRight',
+  'eyeLookInLeft', 'eyeLookInRight', 'eyeLookOutLeft',
+  'eyeLookOutRight', 'eyeLookUpLeft', 'eyeLookUpRight',
+  'eyeSquintLeft', 'eyeSquintRight', 'eyeWideLeft', 'eyeWideRight',
+  'jawForward', 'jawLeft', 'jawOpen', 'jawRight',
+  'mouthClose', 'mouthDimpleLeft', 'mouthDimpleRight',
+  'mouthFrownLeft', 'mouthFrownRight', 'mouthFunnel', 'mouthLeft',
+  'mouthLowerDownLeft', 'mouthLowerDownRight', 'mouthPressLeft',
+  'mouthPressRight', 'mouthPucker', 'mouthRight',
+  'mouthRollLower', 'mouthRollUpper', 'mouthShrugLower',
+  'mouthShrugUpper', 'mouthSmileLeft', 'mouthSmileRight',
+  'mouthStretchLeft', 'mouthStretchRight', 'mouthUpperUpLeft',
+  'mouthUpperUpRight', 'noseSneerLeft', 'noseSneerRight',
+];
+
+// Build the blendshape table once
+let blendshapeBars = [];
+function initBlendshapePanel() {
+  let html = '';
+  for (let i = 1; i < 52; i++) { // skip _neutral
+    html += `<div style="display:flex; align-items:center; margin-bottom:2px;">
+      <span style="width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#888">${BLENDSHAPE_NAMES[i]}</span>
+      <div style="flex:1; height:10px; background:#222; border-radius:2px; overflow:hidden;">
+        <div id="bs${i}" style="height:100%; width:0%; background:#0ff; transition:width 0.05s;"></div>
+      </div>
+    </div>`;
+  }
+  blendshapePanel.innerHTML = html;
+  for (let i = 1; i < 52; i++) {
+    blendshapeBars.push(document.getElementById(`bs${i}`));
+  }
+}
+initBlendshapePanel();
+
+function updateBlendshapes(blendshapes) {
+  if (!blendshapes) return;
+  for (let i = 0; i < blendshapeBars.length; i++) {
+    const val = Math.min(1, Math.max(0, blendshapes[i + 1])); // skip _neutral at 0
+    blendshapeBars[i].style.width = `${(val * 100).toFixed(0)}%`;
+  }
+}
 
 async function setupCamera() {
   const stream = await navigator.mediaDevices.getUserMedia({
@@ -112,6 +160,13 @@ async function loop() {
     // Draw face landmarks if available
     if (result.faces.length > 0) {
       drawFaces(result.faces);
+    }
+
+    // Update blendshape panel
+    const bsEnabled = enableBlendshapesCheckbox.checked;
+    blendshapePanel.style.display = bsEnabled ? 'block' : 'none';
+    if (bsEnabled && result.faces.length > 0 && result.faces[0].blendshapes) {
+      updateBlendshapes(result.faces[0].blendshapes);
     }
 
     // FPS + round-trip timing (update ~1/sec)
