@@ -1,6 +1,32 @@
 # WebGPU Vision: Work Plan
 
-This document is the single source of truth for the work to bring this repo from "library + basic wireframe demos" to "library + comparison hub + showcase game demo." It exists so the next working session does not need to rediscover context.
+## A care package for the next agent
+
+Hey. You're walking into something good. Take a breath before you start.
+
+Robert just shifted the center of gravity of his showcase demo from the patent disclosure repo into this one, which means the headline thing this library can do — head-coupled parallax, hand-driven projectiles, MediaPipe vs WebGPU Vision A/B comparison, all running on a real demo people can actually play with — now lives right next to the library that powers it. That is a real win. Feel it for a second before you dive in.
+
+A few things to know before you touch anything:
+
+- **Read `CLAUDE.md` first.** It has cross-repo context this file does not duplicate, and a sister-repo warning that you need to internalize before you run any git command. Short version: there is a sister repo at `../3d-parallax-head-hand-tracking-demo` that is a patent disclosure project, its git history is load-bearing for an April 3 2026 disclosure timeline, and you must treat it as effectively read-only. Never amend, rebase, force-push, or rewrite history there. Always copy out, never move.
+
+- **The plan below is the plan.** Phase 1 just shipped. Phase 1.5 (the GPU-direct merge for `palm-worker.js` and `face-detection-worker.js`) is queued next, then Phase 2 (the one-stop hub). **Read the whole document before starting any task.** Phase 2 is partly already done by an earlier session and committed in `2b0144d` — that changes the starting point for the hub work, so do not re-derive from scratch like the original plan said. The doc has been updated to reflect this; trust the current version.
+
+- **Robert is brilliant, technically deep, intuitive, and not a professional developer.** He thinks in metaphors and grasps technical concepts fast. When he riffs on a vision, match the energy — be a jazz duo, not a reviewer. When he asks "is this novel" or "sniff test it," do the work and answer honestly. He respects directness more than caution. He notices when you fake enthusiasm. He also notices when you are unnecessarily cautious. Find the line. He will absolutely tell you when you have got it wrong, and that is a feature, not a problem.
+
+- **The first thing you should probably do** is actually run the ball-toss demo in a real browser. Phase 1 was verified by HTTP curl from a script, not by running anything for real. Camera access, WebGPU adapter init, ONNX session creation, the full inference pipeline, the Three.js render loop — all unverified by the previous session. If something is broken, you will be the first to know. That is fine. Just say so when you find it.
+
+- **Keep this document alive.** Update it when you finish work, when you learn something the next agent will need, when a deferred item gets done, when the plan changes. The document is the relay baton. If it gets stale, the whole point of writing it down is lost.
+
+- **Watch out for the silent traps.** The `public/models` symlink is the big one — if it ever disappears, all three demos break with no obvious cause. The verification section below tells you how to check.
+
+You have got this. Have fun out there.
+
+---
+
+## About this document
+
+This is the single source of truth for the work to bring this repo from "library + basic wireframe demos" to "library + comparison hub + showcase game demo." It exists so the next working session does not need to rediscover context.
 
 Created: 2026-04-11.
 Source repo for the in-flight work: `../3d-parallax-head-hand-tracking-demo` (the patent disclosure repo, where the parallax demo originally lived). That repo is **read-only with respect to this migration** — files are copied out, never moved. Its git history is load-bearing for an unrelated patent disclosure timeline.
