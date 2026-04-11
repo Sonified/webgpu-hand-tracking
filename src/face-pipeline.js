@@ -189,17 +189,21 @@ class BlendshapeWorker {
 }
 
 export class FaceTracker {
-  constructor() {
+  constructor(numFaces = 1) {
+    this.numFaces = numFaces;
     this.detectWorker = new FaceDetectionWorker();
-    this.landmarkWorker = new FaceLandmarkWorker();
+    this.landmarkWorkers = [];
     this.blendshapeWorker = new BlendshapeWorker();
-    this.slots = [
-      { index: 0, worker: this.landmarkWorker, active: false, rect: null, landmarks: null },
-    ];
+    this.slots = [];
+    for (let i = 0; i < numFaces; i++) {
+      const worker = new FaceLandmarkWorker();
+      this.landmarkWorkers.push(worker);
+      this.slots.push({ index: i, worker, active: false, rect: null, landmarks: null });
+    }
     this.ready = false;
     this.running = false;
-    this.detecting = false;       // is detection worker currently busy?
-    this.pendingDetections = null; // stashed results from last face detect
+    this.detecting = false;
+    this.pendingDetections = null;
   }
 
   async init(onStatus) {
@@ -207,13 +211,15 @@ export class FaceTracker {
     onStatus?.('Loading face detection worker...');
     await this.detectWorker.init(FACE_DETECTOR_URL);
 
-    onStatus?.('Loading face landmark worker...');
-    await this.landmarkWorker.init(FACE_LANDMARK_URL);
+    for (let i = 0; i < this.landmarkWorkers.length; i++) {
+      onStatus?.(`Loading face landmark worker ${i}...`);
+      await this.landmarkWorkers[i].init(FACE_LANDMARK_URL);
+    }
 
     onStatus?.('Loading blendshape worker...');
     await this.blendshapeWorker.init(FACE_BLENDSHAPE_URL);
 
-    console.log('All face workers ready -- main thread is pure orchestration');
+    console.log(`All face workers ready (${this.numFaces} face slots) -- main thread is pure orchestration`);
     this.ready = true;
     onStatus?.('Ready');
   }

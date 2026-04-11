@@ -13,6 +13,12 @@ const showDebugCheckbox = document.getElementById('showDebug');
 const blendshapePanel = document.getElementById('blendshapePanel');
 const enableBlendshapesCheckbox = document.getElementById('enableBlendshapes');
 
+// Restore checkbox state from localStorage
+if (localStorage.getItem('faceShowDebug') !== null) showDebugCheckbox.checked = localStorage.getItem('faceShowDebug') === 'true';
+if (localStorage.getItem('faceBlendshapes') !== null) enableBlendshapesCheckbox.checked = localStorage.getItem('faceBlendshapes') === 'true';
+showDebugCheckbox.addEventListener('change', () => localStorage.setItem('faceShowDebug', showDebugCheckbox.checked));
+enableBlendshapesCheckbox.addEventListener('change', () => localStorage.setItem('faceBlendshapes', enableBlendshapesCheckbox.checked));
+
 const BLENDSHAPE_NAMES = [
   '_neutral', 'browDownLeft', 'browDownRight', 'browInnerUp',
   'browOuterUpLeft', 'browOuterUpRight', 'cheekPuff',

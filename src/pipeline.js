@@ -32,19 +32,26 @@ class PalmWorker {
     );
     this.pendingResolve = null;
     this.worker.onmessage = (e) => this._onMessage(e);
+    this.worker.onerror = (e) => console.error('[PalmWorker] uncaught worker error:', e.message, e);
   }
 
   init(modelUrl) {
     return new Promise((resolve, reject) => {
       this.worker.onmessage = (e) => {
         if (e.data.type === 'ready') {
-          console.log('Palm worker ready, GPU letterbox:', e.data.gpuLetterbox);
+          console.log('[PalmWorker] ready, GPU letterbox:', e.data.gpuLetterbox);
           this.worker.onmessage = (ev) => this._onMessage(ev);
           resolve();
         } else if (e.data.type === 'error') {
+          console.error('[PalmWorker] reported error:', e.data.message);
           reject(new Error(e.data.message));
         }
       };
+      this.worker.onerror = (e) => {
+        console.error('[PalmWorker] worker crashed:', e.message, e);
+        reject(new Error(`Worker crashed: ${e.message}`));
+      };
+      console.log('[PalmWorker] posting init, modelUrl:', modelUrl);
       this.worker.postMessage({ type: 'init', modelUrl });
     });
   }

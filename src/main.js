@@ -10,11 +10,111 @@ const statusEl = document.getElementById('status');
 const fpsEl = document.getElementById('fps');
 const trackHandsEl = document.getElementById('trackHands');
 const trackFaceEl = document.getElementById('trackFace');
+const enableBlendshapesEl = document.getElementById('enableBlendshapes');
+const showBlendshapesEl = document.getElementById('showBlendshapes');
+const showBsLabel = document.getElementById('showBsLabel');
+const numFacesEl = document.getElementById('numFaces');
+const numFacesLabel = document.getElementById('numFacesLabel');
+const blendshapePanel = document.getElementById('blendshapePanel');
+
+// Restore checkbox/select state from localStorage (before constructors that read them)
+if (localStorage.getItem('trackHands') !== null) trackHandsEl.checked = localStorage.getItem('trackHands') === 'true';
+if (localStorage.getItem('trackFace') !== null) trackFaceEl.checked = localStorage.getItem('trackFace') === 'true';
+if (localStorage.getItem('enableBlendshapes') !== null) enableBlendshapesEl.checked = localStorage.getItem('enableBlendshapes') === 'true';
+if (localStorage.getItem('showBlendshapes') !== null) showBlendshapesEl.checked = localStorage.getItem('showBlendshapes') === 'true';
+if (localStorage.getItem('numFaces') !== null) numFacesEl.value = localStorage.getItem('numFaces');
 
 const handTracker = new HandTracker();
-const faceTracker = new FaceTracker();
+let faceTracker = new FaceTracker(parseInt(numFacesEl.value) || 1);
 let handReady = false;
 let faceReady = false;
+trackHandsEl.addEventListener('change', () => localStorage.setItem('trackHands', trackHandsEl.checked));
+numFacesEl.addEventListener('change', async () => {
+  localStorage.setItem('numFaces', numFacesEl.value);
+  faceReady = false;
+  statusEl.textContent = 'Reinitializing face tracker...';
+  faceTracker = new FaceTracker(parseInt(numFacesEl.value) || 1);
+  await faceTracker.init((msg) => { statusEl.textContent = msg; });
+  faceReady = true;
+  statusEl.textContent = 'Tracking...';
+});
+trackFaceEl.addEventListener('change', () => {
+  localStorage.setItem('trackFace', trackFaceEl.checked);
+  updateBsDeps();
+});
+enableBlendshapesEl.addEventListener('change', () => {
+  localStorage.setItem('enableBlendshapes', enableBlendshapesEl.checked);
+  updateBsDeps();
+});
+showBlendshapesEl.addEventListener('change', () => {
+  localStorage.setItem('showBlendshapes', showBlendshapesEl.checked);
+  updateBsDeps();
+});
+
+function updateBsDeps() {
+  const faceOn = trackFaceEl.checked;
+  numFacesEl.disabled = !faceOn;
+  enableBlendshapesEl.disabled = !faceOn;
+  showBlendshapesEl.disabled = !faceOn || !enableBlendshapesEl.checked;
+  if (!faceOn) {
+    enableBlendshapesEl.checked = false;
+    showBlendshapesEl.checked = false;
+    localStorage.setItem('enableBlendshapes', 'false');
+    localStorage.setItem('showBlendshapes', 'false');
+  }
+  if (!enableBlendshapesEl.checked) {
+    showBlendshapesEl.checked = false;
+    localStorage.setItem('showBlendshapes', 'false');
+  }
+  showBsLabel.style.display = enableBlendshapesEl.checked ? '' : 'none';
+  blendshapePanel.style.display = (showBlendshapesEl.checked && enableBlendshapesEl.checked && faceOn) ? 'block' : 'none';
+}
+updateBsDeps();
+
+const BLENDSHAPE_NAMES = [
+  '_neutral', 'browDownLeft', 'browDownRight', 'browInnerUp',
+  'browOuterUpLeft', 'browOuterUpRight', 'cheekPuff',
+  'cheekSquintLeft', 'cheekSquintRight', 'eyeBlinkLeft',
+  'eyeBlinkRight', 'eyeLookDownLeft', 'eyeLookDownRight',
+  'eyeLookInLeft', 'eyeLookInRight', 'eyeLookOutLeft',
+  'eyeLookOutRight', 'eyeLookUpLeft', 'eyeLookUpRight',
+  'eyeSquintLeft', 'eyeSquintRight', 'eyeWideLeft', 'eyeWideRight',
+  'jawForward', 'jawLeft', 'jawOpen', 'jawRight',
+  'mouthClose', 'mouthDimpleLeft', 'mouthDimpleRight',
+  'mouthFrownLeft', 'mouthFrownRight', 'mouthFunnel', 'mouthLeft',
+  'mouthLowerDownLeft', 'mouthLowerDownRight', 'mouthPressLeft',
+  'mouthPressRight', 'mouthPucker', 'mouthRight',
+  'mouthRollLower', 'mouthRollUpper', 'mouthShrugLower',
+  'mouthShrugUpper', 'mouthSmileLeft', 'mouthSmileRight',
+  'mouthStretchLeft', 'mouthStretchRight', 'mouthUpperUpLeft',
+  'mouthUpperUpRight', 'noseSneerLeft', 'noseSneerRight',
+];
+
+let blendshapeBars = [];
+function initBlendshapePanel() {
+  let html = '';
+  for (let i = 1; i < 52; i++) {
+    html += `<div style="display:flex; align-items:center; margin-bottom:2px;">
+      <span style="width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#888">${BLENDSHAPE_NAMES[i]}</span>
+      <div style="flex:1; height:10px; background:#222; border-radius:2px; overflow:hidden;">
+        <div id="bs${i}" style="height:100%; width:0%; background:#0ff; transition:width 0.05s;"></div>
+      </div>
+    </div>`;
+  }
+  blendshapePanel.innerHTML = html;
+  for (let i = 1; i < 52; i++) {
+    blendshapeBars.push(document.getElementById(`bs${i}`));
+  }
+}
+initBlendshapePanel();
+
+function updateBlendshapes(blendshapes) {
+  if (!blendshapes) return;
+  for (let i = 0; i < blendshapeBars.length; i++) {
+    const val = Math.min(1, Math.max(0, blendshapes[i + 1]));
+    blendshapeBars[i].style.width = `${(val * 100).toFixed(0)}%`;
+  }
+}
 
 // Hand landmark connections for drawing skeleton
 const CONNECTIONS = [
@@ -107,12 +207,15 @@ async function loop() {
     // Run active trackers in parallel
     const promises = [];
     if (trackHandsEl.checked && handReady) promises.push(handTracker.processFrame(video));
-    if (trackFaceEl.checked && faceReady) promises.push(faceTracker.processFrame(video));
+    if (trackFaceEl.checked && faceReady) promises.push(faceTracker.processFrame(video, {
+      runBlendshapes: enableBlendshapesEl.checked,
+    }));
 
     const results = await Promise.all(promises);
     const dt = performance.now() - t0;
 
     ctx.clearRect(0, 0, overlay.width, overlay.height);
+    blendshapePanel.style.display = (showBlendshapesEl.checked && enableBlendshapesEl.checked && trackFaceEl.checked) ? 'block' : 'none';
 
     let handCount = 0;
     let faceCount = 0;
@@ -125,6 +228,10 @@ async function loop() {
       if (result.faces) {
         faceCount = result.faces.length;
         if (faceCount > 0) drawFaces(result.faces);
+        // Update blendshape panel
+        if (enableBlendshapesEl.checked && result.faces.length > 0 && result.faces[0].blendshapes) {
+          updateBlendshapes(result.faces[0].blendshapes);
+        }
       }
     }
 
@@ -134,11 +241,15 @@ async function loop() {
     if (now - lastFpsTime > 1000) {
       const fps = (frameCount / (now - lastFpsTime)) * 1000;
       fpsEl.textContent = `${fps.toFixed(0)} fps | ${dt.toFixed(1)}ms`;
-      const parts = [`${fps.toFixed(0)} fps`];
-      if (trackHandsEl.checked) parts.push(`${handCount} hands`);
-      if (trackFaceEl.checked) parts.push(`${faceCount} faces`);
-      parts.push(`${dt.toFixed(2)}ms`);
-      console.log(`[perf] ${parts.join(' | ')}`);
+      const active = [
+        trackHandsEl.checked ? 'H' : '',
+        trackFaceEl.checked ? 'F' : '',
+        enableBlendshapesEl.checked ? 'B' : '',
+      ].filter(Boolean).join('') || 'none';
+      console.log(JSON.stringify({
+        engine: 'WGPU', active, fps: +fps.toFixed(0), ms: +dt.toFixed(2),
+        hands: handCount, faces: faceCount,
+      }));
       frameCount = 0;
       lastFpsTime = now;
     }
@@ -146,8 +257,17 @@ async function loop() {
     console.error('Frame error:', err);
   }
 
-  requestAnimationFrame(loop);
+  if (!document.hidden) requestAnimationFrame(loop);
 }
+
+// Pause completely when tab is hidden, resume when visible
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    frameCount = 0;
+    lastFpsTime = performance.now();
+    requestAnimationFrame(loop);
+  }
+});
 
 async function main() {
   try {
