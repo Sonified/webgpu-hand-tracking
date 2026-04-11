@@ -19,6 +19,21 @@ The other two demos still live at:
 - **http://localhost:5173/** — hand tracking wireframe (one-stop hub work-in-progress)
 - **http://localhost:5173/face.html** — face landmark + blendshape wireframe (will be deleted in Phase 2)
 
+### Verification status (honest disclaimer)
+
+Phase 1 was verified by HTTP-curling the file paths via the vite dev server: `index.html`, both `src/` imports, both worker files, and the palm model all return 200. **It was NOT verified by actually running the demo in a browser.** Camera access, WebGPU adapter init, ONNX session creation, the full inference pipeline, and the Three.js render loop are all unverified. The first real browser smoke test is on the next session.
+
+If something is broken and the failure is silent, the most likely culprits are: (1) the model fetch (CDN vs local), (2) the COOP/COEP headers being missing for `demos/ball-toss/` if vite serves it differently from the root, (3) one of the dynamic imports landing in a path that does not exist after the layout change.
+
+### Watch out: `public/models` is a symlink
+
+The snapshot-before-merge commit added `public/models` as a **symlink** pointing to `../models`. This is what makes `/models/...` URLs resolve in vite's dev server (vite serves `public/` at the root). If anyone deletes the symlink, all three demos break with no obvious cause — the model fetches will 404 silently inside the workers and the demos will hang at "loading models." To verify the symlink is intact:
+
+```bash
+ls -la public/models
+# expected: lrwxr-xr-x  ... public/models -> ../models
+```
+
 ## Context
 
 Until now, this repo has held the WebGPU Vision library plus two minimal wireframe demos:
@@ -66,7 +81,13 @@ A correct merge takes **both**: parallax's GPU-direct path + canonical's diagnos
 
 ### Also deferred: palm detection model swap
 
-The parallax repo has a different `palm_detection_lite.onnx` than this repo (different MD5; parallax is `a2ffed8...`, canonical is `c7442e0...`). The parallax repo also keeps `palm_detection_lite.onnx.backup` next to it, which suggests at some point a model swap happened in that repo that was never propagated here. I do not know which one is "correct" without testing. **Defer this swap to the same session that does the GPU-direct merge** so both palm-related changes can be verified together.
+The parallax repo has a different `palm_detection_lite.onnx` than this repo. Full MD5s for identification:
+
+- Parallax repo (`../3d-parallax-head-hand-tracking-demo/gpu-vision/models/palm_detection_lite.onnx`): `a2ffed89a8a4a1ac281e9b25d0ac5427` (3,894,373 bytes)
+- This repo (`models/palm_detection_lite.onnx`): `c7442e0d714130ebab375e86fc32fe87`
+- Parallax repo also keeps a `palm_detection_lite.onnx.backup` (3,905,734 bytes) next to the active file, which suggests at some point a model swap happened in that repo that was never propagated here. The `.backup` is the one we did NOT take.
+
+I do not know which one is "correct" without testing. **Defer this swap to the same session that does the GPU-direct merge** so both palm-related changes can be verified together. When you do test, run both side by side and compare detection quality, not just whether they load.
 
 ## Library divergence (one-time upstream) — completed in Phase 1, partially
 
