@@ -13,7 +13,7 @@ const FACE_SIZE = 128;
 let session = null;
 let anchors = null;
 
-// WebGPU letterbox pipeline
+// WebGPU letterbox pipeline (shared device with ONNX RT for zero-copy path)
 let gpuDevice = null;
 let letterboxPipeline = null;
 let outputBuffer = null;
@@ -21,6 +21,7 @@ let readBuffer = null;
 let uniformBuffer = null;
 let sampler = null;
 let useGPU = false;
+let useGPUDirect = false; // true = shared device, fromGpuBuffer, no readback
 
 const WGSL_LETTERBOX = `
 struct Uniforms {
@@ -66,9 +67,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
 }
 `;
 
-async function initGPU() {
-  const adapter = await navigator.gpu.requestAdapter();
-  gpuDevice = await adapter.requestDevice();
+async function initGPU(device) {
+  gpuDevice = device || (await (await navigator.gpu.requestAdapter()).requestDevice());
 
   const shaderModule = gpuDevice.createShaderModule({ code: WGSL_LETTERBOX });
 
@@ -80,7 +80,7 @@ async function initGPU() {
   const outputSize = FACE_SIZE * FACE_SIZE * 3 * 4;
   outputBuffer = gpuDevice.createBuffer({
     size: outputSize,
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
   });
   readBuffer = gpuDevice.createBuffer({
     size: outputSize,
@@ -158,6 +158,58 @@ async function gpuLetterbox(bitmap) {
   return { data, letterbox };
 }
 
+// GPU-direct letterbox: stays on GPU, no CPU readback. Returns letterbox only.
+function gpuLetterboxDirect(bitmap) {
+  const srcW = bitmap.width;
+  const srcH = bitmap.height;
+  const scale = FACE_SIZE / Math.max(srcW, srcH);
+  const dstW = Math.round(srcW * scale);
+  const dstH = Math.round(srcH * scale);
+  const offsetX = (FACE_SIZE - dstW) / 2;
+  const offsetY = (FACE_SIZE - dstH) / 2;
+
+  const srcTexture = gpuDevice.createTexture({
+    size: [srcW, srcH],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+  });
+  gpuDevice.queue.copyExternalImageToTexture(
+    { source: bitmap },
+    { texture: srcTexture },
+    [srcW, srcH]
+  );
+
+  gpuDevice.queue.writeBuffer(uniformBuffer, 0, new Float32Array([
+    scale, offsetX, offsetY, srcW, srcH, 0, 0, 0,
+  ]));
+
+  const bindGroup = gpuDevice.createBindGroup({
+    layout: letterboxPipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: srcTexture.createView() },
+      { binding: 1, resource: sampler },
+      { binding: 2, resource: { buffer: outputBuffer } },
+      { binding: 3, resource: { buffer: uniformBuffer } },
+    ],
+  });
+
+  const encoder = gpuDevice.createCommandEncoder();
+  const pass = encoder.beginComputePass();
+  pass.setPipeline(letterboxPipeline);
+  pass.setBindGroup(0, bindGroup);
+  pass.dispatchWorkgroups(Math.ceil(FACE_SIZE / 16), Math.ceil(FACE_SIZE / 16));
+  pass.end();
+  gpuDevice.queue.submit([encoder.finish()]);
+  srcTexture.destroy();
+
+  return {
+    scaleX: dstW / FACE_SIZE,
+    scaleY: dstH / FACE_SIZE,
+    offsetX: offsetX / FACE_SIZE,
+    offsetY: offsetY / FACE_SIZE,
+  };
+}
+
 // Canvas fallback
 const faceCanvas = new OffscreenCanvas(FACE_SIZE, FACE_SIZE);
 const faceCtx = faceCanvas.getContext('2d', { willReadFrequently: true });
@@ -203,28 +255,38 @@ self.onmessage = async (e) => {
       // Generate anchors
       anchors = generateFaceAnchors();
 
-      // Try GPU letterbox
-      if (typeof navigator !== 'undefined' && navigator.gpu) {
-        try {
-          await initGPU();
-          useGPU = true;
-          console.log('Face worker: WebGPU letterbox enabled');
-        } catch (err) {
-          console.warn('Face worker: GPU letterbox unavailable:', err.message);
-        }
-      }
-
-      // Load face detection model
+      // Create ONNX session FIRST -- it creates its own WebGPU device that we can share
       session = await ort.InferenceSession.create(e.data.modelUrl, {
         executionProviders: ['webgpu'],
         graphOptimizationLevel: 'all',
+        enableMemPattern: true,
       });
+
+      // Now grab ONNX RT's device and build our compute shader on it (zero-copy path)
+      if (typeof navigator !== 'undefined' && navigator.gpu) {
+        try {
+          const onnxDevice = await ort.env.webgpu.device;
+          await initGPU(onnxDevice);
+          useGPUDirect = true;
+          useGPU = true;
+          console.log('Face worker: GPU direct path enabled (zero CPU readback, shared device)');
+        } catch (gpuErr) {
+          console.warn('Face worker: GPU direct unavailable, trying standalone GPU:', gpuErr.message);
+          try {
+            await initGPU();
+            useGPU = true;
+            console.log('Face worker: WebGPU letterbox enabled (standalone device, with readback)');
+          } catch (err2) {
+            console.warn('Face worker: GPU letterbox unavailable:', err2.message);
+          }
+        }
+      }
 
       // Warmup
       const warmup = new ort.Tensor('float32', new Float32Array(FACE_SIZE * FACE_SIZE * 3), [1, FACE_SIZE, FACE_SIZE, 3]);
       await session.run({ [session.inputNames[0]]: warmup });
 
-      self.postMessage({ type: 'ready', gpuLetterbox: useGPU });
+      self.postMessage({ type: 'ready', gpuLetterbox: useGPU, gpuDirect: useGPUDirect });
     } catch (err) {
       self.postMessage({ type: 'error', message: err.message });
     }
@@ -234,15 +296,29 @@ self.onmessage = async (e) => {
     try {
       const { bitmap } = e.data;
 
-      // GPU or canvas letterbox
-      const { data, letterbox } = useGPU
-        ? await gpuLetterbox(bitmap)
-        : canvasLetterbox(bitmap);
+      let input, letterbox;
 
-      bitmap.close();
+      if (useGPUDirect) {
+        // FULL GPU PATH: compute shader -> GPU buffer -> ONNX tensor (no CPU readback!)
+        letterbox = gpuLetterboxDirect(bitmap);
+        bitmap.close();
+        input = ort.Tensor.fromGpuBuffer(outputBuffer, {
+          dataType: 'float32',
+          dims: [1, FACE_SIZE, FACE_SIZE, 3],
+        });
+      } else if (useGPU) {
+        const result = await gpuLetterbox(bitmap);
+        bitmap.close();
+        letterbox = result.letterbox;
+        input = new ort.Tensor('float32', result.data, [1, FACE_SIZE, FACE_SIZE, 3]);
+      } else {
+        const result = canvasLetterbox(bitmap);
+        bitmap.close();
+        letterbox = result.letterbox;
+        input = new ort.Tensor('float32', result.data, [1, FACE_SIZE, FACE_SIZE, 3]);
+      }
 
       // Run inference
-      const input = new ort.Tensor('float32', data, [1, FACE_SIZE, FACE_SIZE, 3]);
       const results = await session.run({ [session.inputNames[0]]: input });
 
       // Decode -- BlazeFace outputs 16 values per anchor (not 18 like palm)

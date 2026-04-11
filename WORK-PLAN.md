@@ -55,9 +55,11 @@ The other two demos still live at:
 - **http://localhost:5173/** — hand tracking wireframe (one-stop hub work-in-progress)
 - **http://localhost:5173/face.html** — face landmark + blendshape wireframe (will be deleted in Phase 2)
 
-### Verification status (honest disclaimer)
+### Verification status
 
-Phase 1 was verified by HTTP-curling the file paths via the vite dev server: `index.html`, both `src/` imports, both worker files, and the palm model all return 200. **It was NOT verified by actually running the demo in a browser.** Camera access, WebGPU adapter init, ONNX session creation, the full inference pipeline, and the Three.js render loop are all unverified. The first real browser smoke test is on the next session.
+Phase 1 **verified in a real browser on 2026-04-11.** Ball-toss demo loads, camera/WebGPU/ONNX/Three.js all init cleanly, inference pipeline runs. Brief scare with GPU contention from other tabs holding the adapter (not a regression — just the usual WebGPU-shared-adapter tax). Tab-hidden pause path also confirmed working: `animate()` and `sendMediaPipeFrames()` both early-return on `document.hidden`, and `visibilitychange` restarts them while flushing stale `clock.getDelta()` so projectiles don't teleport.
+
+Original curl-only verification note (kept for history): Phase 1 was initially verified only by HTTP-curling the file paths via the vite dev server before the browser smoke test landed.
 
 If something is broken and the failure is silent, the most likely culprits are: (1) the model fetch (CDN vs local), (2) the COOP/COEP headers being missing for `demos/ball-toss/` if vite serves it differently from the root, (3) one of the dynamic imports landing in a path that does not exist after the layout change.
 
@@ -80,7 +82,45 @@ The richer demonstration of what the library can do (head-coupled 3D parallax, h
 
 This work plan shifts the center of gravity. After Phase 1, the showcase demo lives in this repo. After Phase 2, this repo also has a unified one-stop comparison hub at the root.
 
-## Phase 1.5: GPU-direct merge (DEFERRED — read this before touching workers)
+## Phase 1.5: GPU-direct merge (DONE 2026-04-11) — model swap still deferred
+
+The GPU-direct merge landed and was verified in a real browser. The palm model swap was attempted in the same session and reverted — see "Model swap status" below.
+
+### What landed
+
+Both `src/palm-worker.js` and `src/face-detection-worker.js` now have the full zero-copy path:
+- `useGPUDirect` flag, `initGPU(device)` accepting a shared device
+- `outputBuffer` gains `GPUBufferUsage.COPY_DST`
+- `gpuLetterboxDirect()` function (compute pass, no readback)
+- Init reordered: ONNX session created first (with `enableMemPattern: true`), then `await ort.env.webgpu.device` to grab ORT's device, then `initGPU(device)` builds the compute shader on the same device. Standalone GPU is the fallback if the shared-device path throws.
+- Per-frame detect handler has a 3-way branch: `useGPUDirect` (zero-copy via `ort.Tensor.fromGpuBuffer`) → `useGPU` (legacy GPU letterbox with readback) → `canvas` (canvas fallback)
+- `ready` postMessage now includes `gpuDirect: useGPUDirect`
+- All canonical `[palm-worker]` diagnostic logs preserved on the palm side
+
+### Browser verification (2026-04-11, ball-toss demo)
+
+Both workers logged `GPU direct path enabled (zero CPU readback, shared device)` on init. Performance:
+- Hand: 3.1ms mean / 11.5ms p95 (171 samples)
+- Face: 13.5ms mean / 20.2ms p95 (92 samples)
+
+Two-hand tracking and face tracking both lock cleanly. Pipeline reports `All workers ready -- main thread is pure orchestration`.
+
+ONNX RT still emits a benign `VerifyEachNodeIsAssignedToAnEp` warning at session create time -- this is ORT noting that shape-related ops are explicitly assigned to CPU for perf, unrelated to our path. Safe to ignore.
+
+### Model swap status: deferred (reverted in this session)
+
+The active palm model in the parallax repo (`a2ffed89a8a4a1ac281e9b25d0ac5427`, 3,894,373 bytes) was tried as a drop-in replacement and **failed to load with `ERROR_CODE: 7, ERROR_MESSAGE: Failed to load model because protobuf parsing failed`** under ONNX RT 1.21.0. The original `c7442e0d714130ebab375e86fc32fe87` was restored from a `/tmp` backup taken before the swap.
+
+What we still don't know:
+- Whether the parallax repo's `palm_detection_lite.onnx.backup` (`3,905,734 bytes`, the file we did NOT take) is the actually-working model in that repo, with the `.backup` and active files possibly swapped at some point in their history.
+- Whether the parallax repo has been silently using a working model that ONNX RT 1.21.0 can no longer parse (e.g. saved by a newer ORT version, or the file is actually corrupt).
+- Whether the model needs to be re-converted from source rather than copied.
+
+When the next session takes this on, the move is: try the `.backup` file first (it's a different file by size, not just a backup of the active one), and if that also fails, leave the swap permanently deferred and document it. Don't burn time on this one — the GPU-direct win was the real prize and it landed.
+
+---
+
+## Phase 1.5 (original, kept for history)
 
 Phase 1 took only the **safe** library upstream changes. Two real performance wins are still pending and need a careful merge session.
 

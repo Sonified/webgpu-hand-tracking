@@ -13,7 +13,7 @@ const PALM_SIZE = 192;
 let session = null;
 let anchors = null;
 
-// WebGPU letterbox pipeline
+// WebGPU letterbox pipeline (shared device with ONNX RT for zero-copy path)
 let gpuDevice = null;
 let letterboxPipeline = null;
 let outputBuffer = null;
@@ -21,6 +21,7 @@ let readBuffer = null;
 let uniformBuffer = null;
 let sampler = null;
 let useGPU = false;
+let useGPUDirect = false; // true = shared device, fromGpuBuffer, no readback
 
 const WGSL_LETTERBOX = `
 struct Uniforms {
@@ -66,9 +67,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
 }
 `;
 
-async function initGPU() {
-  const adapter = await navigator.gpu.requestAdapter();
-  gpuDevice = await adapter.requestDevice();
+async function initGPU(device) {
+  gpuDevice = device || (await (await navigator.gpu.requestAdapter()).requestDevice());
 
   const shaderModule = gpuDevice.createShaderModule({ code: WGSL_LETTERBOX });
 
@@ -80,7 +80,7 @@ async function initGPU() {
   const outputSize = PALM_SIZE * PALM_SIZE * 3 * 4;
   outputBuffer = gpuDevice.createBuffer({
     size: outputSize,
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
   });
   readBuffer = gpuDevice.createBuffer({
     size: outputSize,
@@ -158,6 +158,58 @@ async function gpuLetterbox(bitmap) {
   return { data, letterbox };
 }
 
+// GPU-direct letterbox: stays on GPU, no CPU readback. Returns letterbox only.
+function gpuLetterboxDirect(bitmap) {
+  const srcW = bitmap.width;
+  const srcH = bitmap.height;
+  const scale = PALM_SIZE / Math.max(srcW, srcH);
+  const dstW = Math.round(srcW * scale);
+  const dstH = Math.round(srcH * scale);
+  const offsetX = (PALM_SIZE - dstW) / 2;
+  const offsetY = (PALM_SIZE - dstH) / 2;
+
+  const srcTexture = gpuDevice.createTexture({
+    size: [srcW, srcH],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+  });
+  gpuDevice.queue.copyExternalImageToTexture(
+    { source: bitmap },
+    { texture: srcTexture },
+    [srcW, srcH]
+  );
+
+  gpuDevice.queue.writeBuffer(uniformBuffer, 0, new Float32Array([
+    scale, offsetX, offsetY, srcW, srcH, 0, 0, 0,
+  ]));
+
+  const bindGroup = gpuDevice.createBindGroup({
+    layout: letterboxPipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: srcTexture.createView() },
+      { binding: 1, resource: sampler },
+      { binding: 2, resource: { buffer: outputBuffer } },
+      { binding: 3, resource: { buffer: uniformBuffer } },
+    ],
+  });
+
+  const encoder = gpuDevice.createCommandEncoder();
+  const pass = encoder.beginComputePass();
+  pass.setPipeline(letterboxPipeline);
+  pass.setBindGroup(0, bindGroup);
+  pass.dispatchWorkgroups(Math.ceil(PALM_SIZE / 16), Math.ceil(PALM_SIZE / 16));
+  pass.end();
+  gpuDevice.queue.submit([encoder.finish()]);
+  srcTexture.destroy();
+
+  return {
+    scaleX: dstW / PALM_SIZE,
+    scaleY: dstH / PALM_SIZE,
+    offsetX: offsetX / PALM_SIZE,
+    offsetY: offsetY / PALM_SIZE,
+  };
+}
+
 // Canvas fallback
 const palmCanvas = new OffscreenCanvas(PALM_SIZE, PALM_SIZE);
 const palmCtx = palmCanvas.getContext('2d', { willReadFrequently: true });
@@ -206,32 +258,43 @@ self.onmessage = async (e) => {
       anchors = generateAnchors();
       console.log('[palm-worker] anchors generated:', anchors.length);
 
-      // Try GPU letterbox
-      if (typeof navigator !== 'undefined' && navigator.gpu) {
-        console.log('[palm-worker] navigator.gpu available, requesting adapter...');
-        try {
-          await initGPU();
-          useGPU = true;
-          console.log('[palm-worker] WebGPU letterbox enabled');
-        } catch (err) {
-          console.warn('[palm-worker] GPU letterbox unavailable:', err.message);
-        }
-      } else {
-        console.warn('[palm-worker] navigator.gpu not available, using canvas letterbox');
-      }
-
-      // Load palm detection model
+      // Diagnostic fetch -- surface 404s / CORS issues clearly before ORT swallows them
       console.log('[palm-worker] fetching model...');
       const modelResp = await fetch(e.data.modelUrl);
       console.log('[palm-worker] model fetch status:', modelResp.status, modelResp.ok);
       if (!modelResp.ok) throw new Error(`Model fetch failed: ${modelResp.status} ${e.data.modelUrl}`);
 
+      // Create ONNX session FIRST -- it creates its own WebGPU device that we can share
       console.log('[palm-worker] creating InferenceSession with webgpu EP...');
       session = await ort.InferenceSession.create(e.data.modelUrl, {
         executionProviders: ['webgpu'],
         graphOptimizationLevel: 'all',
+        enableMemPattern: true,
       });
       console.log('[palm-worker] session created, inputs:', session.inputNames, 'outputs:', session.outputNames);
+
+      // Now grab ONNX RT's device and build our compute shader on it (zero-copy path)
+      if (typeof navigator !== 'undefined' && navigator.gpu) {
+        console.log('[palm-worker] navigator.gpu available, attempting shared-device GPU direct path...');
+        try {
+          const onnxDevice = await ort.env.webgpu.device;
+          await initGPU(onnxDevice);
+          useGPUDirect = true;
+          useGPU = true;
+          console.log('[palm-worker] GPU direct path enabled (zero CPU readback, shared device)');
+        } catch (gpuErr) {
+          console.warn('[palm-worker] GPU direct unavailable, trying standalone GPU:', gpuErr.message);
+          try {
+            await initGPU();
+            useGPU = true;
+            console.log('[palm-worker] WebGPU letterbox enabled (standalone device, with readback)');
+          } catch (err2) {
+            console.warn('[palm-worker] GPU letterbox unavailable:', err2.message);
+          }
+        }
+      } else {
+        console.warn('[palm-worker] navigator.gpu not available, using canvas letterbox');
+      }
 
       // Warmup
       console.log('[palm-worker] running warmup...');
@@ -239,7 +302,7 @@ self.onmessage = async (e) => {
       await session.run({ [session.inputNames[0]]: warmup });
       console.log('[palm-worker] warmup done');
 
-      self.postMessage({ type: 'ready', gpuLetterbox: useGPU });
+      self.postMessage({ type: 'ready', gpuLetterbox: useGPU, gpuDirect: useGPUDirect });
     } catch (err) {
       console.error('[palm-worker] init error:', err);
       self.postMessage({ type: 'error', message: err.message });
@@ -250,15 +313,31 @@ self.onmessage = async (e) => {
     try {
       const { bitmap } = e.data;
 
-      // GPU or canvas letterbox
-      const { data, letterbox } = useGPU
-        ? await gpuLetterbox(bitmap)
-        : canvasLetterbox(bitmap);
+      let input, letterbox;
 
-      bitmap.close();
+      if (useGPUDirect) {
+        // FULL GPU PATH: compute shader -> GPU buffer -> ONNX tensor (no CPU readback!)
+        letterbox = gpuLetterboxDirect(bitmap);
+        bitmap.close();
+        input = ort.Tensor.fromGpuBuffer(outputBuffer, {
+          dataType: 'float32',
+          dims: [1, PALM_SIZE, PALM_SIZE, 3],
+        });
+      } else if (useGPU) {
+        // GPU letterbox with readback (separate devices)
+        const result = await gpuLetterbox(bitmap);
+        bitmap.close();
+        letterbox = result.letterbox;
+        input = new ort.Tensor('float32', result.data, [1, PALM_SIZE, PALM_SIZE, 3]);
+      } else {
+        // Canvas fallback
+        const result = canvasLetterbox(bitmap);
+        bitmap.close();
+        letterbox = result.letterbox;
+        input = new ort.Tensor('float32', result.data, [1, PALM_SIZE, PALM_SIZE, 3]);
+      }
 
       // Run inference
-      const input = new ort.Tensor('float32', data, [1, PALM_SIZE, PALM_SIZE, 3]);
       const results = await session.run({ [session.inputNames[0]]: input });
 
       // Decode
