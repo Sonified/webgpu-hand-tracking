@@ -211,6 +211,7 @@ self.onmessage = async (e) => {
       session = await ort.InferenceSession.create(e.data.modelUrl, {
         executionProviders: ['webgpu'],
         graphOptimizationLevel: 'all',
+        enableMemPattern: true,
       });
 
       // Get ONNX RT's WebGPU device and build our warp shader on it

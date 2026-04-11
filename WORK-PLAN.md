@@ -15,7 +15,46 @@ The richer demonstration of what the library can do (head-coupled 3D parallax, h
 
 This work plan shifts the center of gravity. After Phase 1, the showcase demo lives in this repo. After Phase 2, this repo also has a unified one-stop comparison hub at the root.
 
-## Library divergence (one-time upstream)
+## Phase 1.5: GPU-direct merge (DEFERRED — read this before touching workers)
+
+Phase 1 took only the **safe** library upstream changes. Two real performance wins are still pending and need a careful merge session.
+
+### What is still in the parallax repo and not yet here
+
+The parallax repo (`../3d-parallax-head-hand-tracking-demo/gpu-vision/src/`) has a **zero-copy GPU letterbox path** in the detection workers that lets the letterbox compute shader and the ONNX inference share a single WebGPU device, eliminating the CPU readback between them. The relevant addition is a function called `gpuLetterboxDirect` plus a `useGPUDirect` flag plus an `initGPU(device)` signature change that accepts a shared device, plus a per-frame branch that uses `ort.Tensor.fromGpuBuffer()` to hand the GPU buffer directly to ONNX.
+
+Files where this still needs to be merged:
+- `src/palm-worker.js`
+- `src/face-detection-worker.js`
+
+(The landmark-side workers — `landmark-worker.js`, `face-landmark-worker.js`, `face-blendshape-worker.js` — already have the shared-device path in canonical. Only the detection-side workers are missing it.)
+
+### Why this is a 3-way merge, not a copy
+
+After the `snapshot-before-merge` commit, both `palm-worker.js` and `face-detection-worker.js` in this repo contain a **substantial set of `[palm-worker]` / `[face-detection-worker]` diagnostic console logs** added during a prior session (init started, model fetch status, session created with input/output names, warmup done, error paths, etc). The parallax versions of those files **do not have those logs**.
+
+So neither side is a strict superset:
+- Take the parallax version → lose the diagnostic logs
+- Keep the canonical version → never gain the GPU-direct path
+
+A correct merge takes **both**: parallax's GPU-direct path + canonical's diagnostic logs. The init flow also needs to be reconciled because the two versions order things differently (parallax creates the ONNX session first then asks ONNX for its WebGPU device; canonical checks for WebGPU first then creates the session).
+
+### Process for the merge session
+
+1. Open `../3d-parallax-head-hand-tracking-demo/gpu-vision/src/palm-worker.js` and the current `src/palm-worker.js` side by side.
+2. Start from the canonical version (has the diagnostics we want to keep).
+3. Add: the `useGPUDirect` flag, the `initGPU(device)` parameter, the COPY_DST usage flag on the output buffer, the `gpuLetterboxDirect` function definition, the GPU-direct branch in the per-frame handler that calls `ort.Tensor.fromGpuBuffer`, the "Palm worker: GPU direct path enabled" success log, and the `gpuDirect: useGPUDirect` field in the `ready` postMessage.
+4. Reconcile init order: the GPU-direct path requires the ONNX session to exist before `initGPU` is called, so the session creation needs to move earlier. Keep all the existing diagnostic logs around it.
+5. Add `enableMemPattern: true` to the session options (Phase 1 added this to the landmark workers but not these — they were skipped because of the bigger merge).
+6. Repeat for `face-detection-worker.js`.
+7. Test in browser: load `/demos/ball-toss/`, open devtools, look for the `GPU direct path enabled` log and confirm `gpuDirect: true` in the ready message. Run the demo for a minute, watch perf.
+8. Commit as one focused commit.
+
+### Also deferred: palm detection model swap
+
+The parallax repo has a different `palm_detection_lite.onnx` than this repo (different MD5; parallax is `a2ffed8...`, canonical is `c7442e0...`). The parallax repo also keeps `palm_detection_lite.onnx.backup` next to it, which suggests at some point a model swap happened in that repo that was never propagated here. I do not know which one is "correct" without testing. **Defer this swap to the same session that does the GPU-direct merge** so both palm-related changes can be verified together.
+
+## Library divergence (one-time upstream) — completed in Phase 1, partially
 
 The parallax repo's `gpu-vision/src/` is **the better code**. Concrete differences:
 
@@ -27,22 +66,20 @@ The parallax repo's `gpu-vision/src/` is **the better code**. Concrete differenc
 
 The only thing canonical has that the parallax copy lacks is some extra `console.error` diagnostics in worker setup, nothing functional.
 
-**Action: copy the parallax repo's improved files into canonical, except `model-urls.js` (keep canonical's `LOCAL_BASE`).**
+**Phase 1 outcome: only the safe single-line additions were taken. The bigger improvements were deferred to Phase 1.5 (see above).**
 
-Files to copy from `../3d-parallax-head-hand-tracking-demo/gpu-vision/src/` into this repo's `src/`:
-- `palm-worker.js`
-- `landmark-worker.js`
-- `pipeline.js`
-- `face-detection-worker.js`
-- `face-landmark-worker.js`
-- `face-blendshape-worker.js`
+What Phase 1 actually did to `src/`:
+- `landmark-worker.js`: added `enableMemPattern: true` to ORT session options
+- `face-landmark-worker.js`: added `enableMemPattern: true`
+- `face-blendshape-worker.js`: added `enableMemPattern: true`
 
-Plus the model file that differs:
-- `../3d-parallax-head-hand-tracking-demo/gpu-vision/models/palm_detection_lite.onnx` → `models/palm_detection_lite.onnx` (the parallax repo also has a `.onnx.backup` next to it; do not copy the backup)
+What Phase 1 left alone (intentionally):
+- `pipeline.js`, `face-pipeline.js`: canonical (with snapshot-before-merge WIP) is already a strict superset of the parallax versions; nothing to copy
+- `palm-worker.js`, `face-detection-worker.js`: 3-way merge, deferred to Phase 1.5
+- `model-urls.js`: paths are already correct for this repo's layout
+- `models/palm_detection_lite.onnx`: model swap deferred to Phase 1.5
 
-After upstreaming, verify both existing demos (`index.html`, `face.html`) still run via `npm run dev` before moving on.
-
-## Phase 1: Center-of-gravity shift (TODAY)
+## Phase 1: Center-of-gravity shift (DONE)
 
 Goal: ship the showcase demo in this repo, untouched-as-possible, importing the library from `../../src/`. No surgery on the demo, no new functionality.
 
@@ -170,6 +207,35 @@ The original plan was "start from a copy of `demos/ball-toss/index.html` and str
 ## Phase 3: Polish and longer-term
 
 These are tracked here so they do not get lost; none are blocking a release.
+
+### Hand tracking: detect and recover from double-mapped hands
+
+The current pipeline runs two parallel hand-landmark workers (workers 0 and 1) to track up to two hands at once. There is a known failure mode where both workers latch onto the **same physical hand** — usually after one hand briefly leaves the frame and re-enters, or after a tracking glitch. When this happens, we burn one worker on a duplicate detection and the user's other hand goes untracked even when it is clearly visible.
+
+Fix: at the end of each frame, compare the two landmark sets. If they overlap in image space beyond a threshold (for example, palm centers within N pixels and bounding boxes overlapping by more than 50%), declare a duplicate, **free worker 1 from its current ROI lock**, and let it fall back to running palm detection again on the next frame to find a different hand. The de-duplication runs on the main thread after `Promise.all`, so it adds essentially no latency.
+
+Watch out for: legitimate two-hand-clasped poses where the hands really are overlapping. Use a slightly tighter overlap threshold than naive IoU, and require duplication to persist for 2-3 frames before acting on it, to avoid flapping.
+
+### Mobile / phone support: WebGPU Vision not loading
+
+Current symptom: the demo loads on desktop Chrome but **fails to load on phone**. Root cause not yet diagnosed. Investigation steps:
+- Connect phone via remote devtools (Chrome on Android: `chrome://inspect`; Safari on iOS: develop menu)
+- Check whether the issue is at the WebGPU adapter level (`navigator.gpu.requestAdapter()` returning null), at the model fetch level (CORS, MIME, size), at the ONNX Runtime initialization level, or at the worker spawn level
+- Test on multiple mobile browsers: Chrome Android, Safari iOS, Edge Android
+- Note: iOS Safari WebGPU support is gated behind a feature flag in older versions; verify the test device's iOS version
+- If WebGPU is unavailable on the test phone, the demo should at least fail gracefully and surface a clear message instead of just hanging
+
+### Asset hosting and local persistence
+
+Three intertwined questions about model file delivery:
+
+1. **Ideal download path / CDN strategy.** Currently models are served from `https://models.now.audio` in production via [model-urls.js](src/model-urls.js). Open question: is that the best home long-term? Alternatives: GitHub Releases (free, slower, has bandwidth limits), HuggingFace Hub (purpose-built for model hosting, free, fast), Cloudflare R2 (cheap, fast, no egress fees), keeping `models.now.audio`. Decide before any public release push.
+
+2. **Local persistence (caching).** Currently every page load re-downloads ~15MB of ONNX models. We should cache them in IndexedDB or Cache API on first load and read from local storage on subsequent loads. Even better: use the Cache API with the service worker (`coi-serviceworker.js` is already in place for COOP/COEP) so the browser handles staleness. Saves bandwidth and dramatically improves return-visit cold start.
+
+3. **Toggle to disable local persistence.** For development and testing we need a setting (URL param or localStorage flag) that **forces a fresh download bypassing the cache**, so we can test loading from different CDN paths and verify that production load behavior matches dev. Default: cache on. Override: `?nocache=1` or similar.
+
+These three should probably be tackled together — once we have a caching layer, the CDN choice and the toggle naturally fall out.
 
 ### Demo polish
 - Rename `demos/ball-toss/` to whatever the game ends up being called.

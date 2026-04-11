@@ -202,6 +202,7 @@ self.onmessage = async (e) => {
       session = await ort.InferenceSession.create(e.data.modelUrl, {
         executionProviders: ['webgpu'],
         graphOptimizationLevel: 'all',
+        enableMemPattern: true,
       });
 
       // Now get ONNX RT's device and build our compute shader on it

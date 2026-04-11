@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Parallax + Hand Tracking Demo</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a1a; color: #fff; font-family: system-ui, sans-serif; overflow: hidden; }
+  canvas { display: block; }
+  #hud {
+    position: fixed; bottom: 16px; left: 16px; z-index: 10;
+    font-size: 1.1rem; line-height: 1.6; color: #ccc;
+    background: rgba(10,10,26,0.8); padding: 12px 16px; border-radius: 8px;
+    border: 1px solid #333; width: 310px; will-change: transform;
+  }
+  #hud .label { color: #888; }
+  #hud .val { color: #4fc3f7; font-weight: 600; }
+  #hud .pinch { color: #ff6d00; }
+  #hud .open { color: #4fc3f7; }
+  #start-btn {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    z-index: 20; padding: 16px 32px; font-size: 1.55rem; background: #4fc3f7;
+    color: #0a0a1a; border: none; border-radius: 3px; cursor: pointer; font-weight: 700;
+  }
+  #start-btn:hover { background: #81d4fa; }
+  #status {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    z-index: 10; font-size: 1.2rem; color: #ccc; font-weight: 500;
+    background: rgba(10,10,26,0.92); padding: 8px 16px; border-radius: 6px;
+    border: 1px solid #333;
+  }
+  #controls {
+    position: fixed; top: 12px; left: 12px; z-index: 10;
+    font-size: 1.04rem; color: #ccc;
+    background: rgba(10,10,26,0.92); padding: 8px 12px; border-radius: 6px;
+    border: 1px solid #333; display: none;
+  }
+  #controls select {
+    background: #111; color: #fff; border: 1px solid #444; border-radius: 3px;
+    padding: 2px 6px; font-size: 1.04rem; margin-left: 4px;
+  }
+  #controls .sep { margin-left: 10px; }
+  #filter-controls {
+    position: fixed; top: 12px; right: 12px; z-index: 10;
+    font-size: 0.9rem; color: #ccc;
+    background: rgba(10,10,26,0.92); padding: 10px 14px; border-radius: 6px;
+    border: 1px solid #333; display: none;
+    min-width: 220px;
+  }
+  #filter-controls .section-label {
+    color: #4fc3f7; font-weight: 600; font-size: 0.95rem;
+    margin-top: 8px; margin-bottom: 4px;
+  }
+  #filter-controls .section-label:first-child { margin-top: 0; }
+  #filter-controls .param-row {
+    display: flex; align-items: center; margin-bottom: 3px;
+  }
+  #filter-controls .param-name {
+    width: 90px; color: #888; font-size: 0.85rem;
+  }
+  #filter-controls input[type="range"] {
+    flex: 1; height: 4px; accent-color: #4fc3f7; cursor: pointer;
+  }
+  #filter-controls .param-val {
+    width: 40px; text-align: right; color: #4fc3f7; font-size: 0.8rem; font-weight: 600;
+  }
+  #self-view {
+    position: fixed; bottom: 16px; right: 16px; z-index: 10;
+    border-radius: 10px; overflow: hidden;
+    border: 1px solid #444;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.7);
+    display: none; width: 240px;
+  }
+  #self-view canvas { display: block; width: 100%; height: auto; }
+</style>
+</head>
+<body>
+
+<div id="controls">
+  <span style="color:#888;">Backend</span>
+  <select id="backend-select">
+    <option value="webgpu">WebGPU</option>
+    <option value="mediapipe">MediaPipe</option>
+  </select>
+  <span class="sep" style="color:#888;">Parallax</span>
+  <select id="parallax-select">
+    <option value="relative">Relative</option>
+    <option value="raw">Raw</option>
+    <option value="off">Off</option>
+  </select>
+  <span class="sep" style="color:#888;">Hands</span>
+  <select id="num-hands-select">
+    <option value="1">1</option>
+    <option value="2" selected>2</option>
+  </select>
+</div>
+
+<div id="filter-controls">
+  <div class="section-label" style="display:flex; justify-content:space-between; align-items:center;">Head <button id="recenter-btn" style="background:#222; color:#4fc3f7; border:1px solid #444; border-radius:4px; padding:2px 8px; font-size:0.75rem; cursor:pointer; font-weight:400;">Recenter</button></div>
+  <div class="param-row"><span class="param-name">Model</span><select id="face-mode" style="flex:1; background:#222; color:#ccc; border:1px solid #444; border-radius:3px; padding:1px 4px; font-size:0.75rem;"><option value="landmark">Landmark (478pt, precise)</option><option value="detector">Detector (6pt, fast)</option></select></div>
+  <div class="param-row"><span class="param-name">Floor</span><input type="range" id="head-floor" min="1" max="500" step="1" value="10"><span class="param-val" id="head-floor-val">0.10</span></div>
+  <div class="param-row"><span class="param-name">Beta</span><input type="range" id="head-beta" min="0" max="500" step="1" value="35"><span class="param-val" id="head-beta-val">3.5</span></div>
+  <div class="section-label">Parallax</div>
+  <div class="param-row"><span class="param-name">Amount</span><input type="range" id="parallax-amount" min="0" max="2" step="0.05" value="0.7"><span class="param-val" id="parallax-amount-val">0.70</span></div>
+  <div class="param-row"><span class="param-name">Depth</span><input type="range" id="parallax-depth" min="15" max="80" step="1" value="20"><span class="param-val" id="parallax-depth-val">20</span></div>
+  <div class="section-label">Hands</div>
+  <div class="param-row"><span class="param-name">Floor</span><input type="range" id="hand-floor" min="1" max="500" step="1" value="10"><span class="param-val" id="hand-floor-val">0.10</span></div>
+  <div class="param-row"><span class="param-name">Beta</span><input type="range" id="hand-beta" min="0" max="500" step="1" value="35"><span class="param-val" id="hand-beta-val">3.5</span></div>
+  <div style="text-align:right; margin-top:8px;"><button id="copy-settings-btn" style="background:#222; color:#4fc3f7; border:1px solid #444; border-radius:4px; padding:3px 10px; font-size:0.8rem; cursor:pointer;">Copy</button></div>
+</div>
+
+<div id="status">Click Start to enable camera</div>
+<button id="start-btn">Start Camera</button>
+
+<div id="hud" style="display:none;">
+  <div><span class="label">Head: </span><span id="head-pos" class="val">--</span></div>
+  <div><span class="label">Hand: </span><span id="hand-state" class="val">--</span></div>
+  <div><span class="label">Gesture: </span><span id="gesture-state" class="val">--</span></div>
+  <div><span class="label">FPS: </span><span id="fps" class="val">--</span></div>
+  <div><span class="label">Backend: </span><span id="backend-label" class="val">--</span></div>
+</div>
+
+<button id="self-view-btn" style="position:fixed; bottom:16px; right:16px; z-index:11; background:#222; color:#888; border:1px solid #444; border-radius:4px; padding:6px 14px; font-size:0.85rem; cursor:pointer; display:none;">Self View</button>
+
+<div id="winner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:20; font-size:4rem; font-weight:700; color:#fff; font-family:system-ui,sans-serif;">You Win!</div>
+
+<div id="self-view"><canvas id="self-view-canvas" width="240" height="180"></canvas></div>
+
+<video id="webcam" autoplay playsinline style="display:none;"></video>
+
+<!-- Enable crossOriginIsolated on hosts without COOP/COEP headers (e.g. GitHub Pages) -->
+<script src="coi-serviceworker.js"></script>
+
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ============================================================
+// Settings: persisted in localStorage, restored on refresh
+// ============================================================
+const DEFAULTS = { backend: 'webgpu', parallax: 'relative', numHands: '2' };
+function getSetting(key) { const v = localStorage.getItem(key); return v !== null ? v : DEFAULTS[key]; }
+function setSetting(key, val) { localStorage.setItem(key, val); }
+
+// Restore UI from settings
+const backendSelect = document.getElementById('backend-select');
+const parallaxSelect = document.getElementById('parallax-select');
+const numHandsSelect = document.getElementById('num-hands-select');
+
+backendSelect.value = getSetting('backend');
+parallaxSelect.value = getSetting('parallax');
+numHandsSelect.value = getSetting('numHands');
+
+// ============================================================
+// 3D Scene Setup
+// ============================================================
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a1a);
+scene.fog = new THREE.FogExp2(0x0a0a1a, 0.015);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 200);
+camera.position.set(0, 0, 8);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+document.body.appendChild(renderer.domElement);
+
+// Lighting
+const ambient = new THREE.AmbientLight(0x667799, 1.2);
+scene.add(ambient);
+const frontLight = new THREE.DirectionalLight(0xffffff, 1.0);
+frontLight.position.set(0, 2, 8);
+scene.add(frontLight);
+const pointLight = new THREE.PointLight(0xff6d00, 2, 50);
+pointLight.position.set(0, 3, -4);
+scene.add(pointLight);
+const fillLight = new THREE.DirectionalLight(0x4488cc, 0.6);
+fillLight.position.set(-5, 2, 2);
+scene.add(fillLight);
+
+// Background grid for depth perception
+const bgGridZ = -32;
+const bgGridMat = new THREE.LineBasicMaterial({ color: 0x4fc3f7, opacity: 0.25, transparent: true, fog: false });
+const bgGridGroup = new THREE.Group();
+const gridSpan = 60;
+const gridStep = 2;
+for (let i = -gridSpan; i <= gridSpan; i += gridStep) {
+  // Vertical lines
+  const vGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(i, -gridSpan, bgGridZ),
+    new THREE.Vector3(i, gridSpan, bgGridZ),
+  ]);
+  bgGridGroup.add(new THREE.Line(vGeo, bgGridMat));
+  // Horizontal lines
+  const hGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-gridSpan, i, bgGridZ),
+    new THREE.Vector3(gridSpan, i, bgGridZ),
+  ]);
+  bgGridGroup.add(new THREE.Line(hGeo, bgGridMat));
+}
+scene.add(bgGridGroup);
+
+// Grid of cubes (InstancedMesh for single draw call)
+const cubeGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
+const cubeMat = new THREE.MeshStandardMaterial({ roughness: 0.7, metalness: 0.3 });
+
+// Pre-compute grid positions
+function buildCubeData() {
+  const positions = [];
+  for (let x = -4; x <= 4; x += 2) {
+    for (let y = -1.5; y <= 2.5; y += 2) {
+      for (let z = -15; z <= -0.5; z += 2.5) {
+        positions.push({ x, y, z, hue: (x + 4) / 8 });
+      }
+    }
+  }
+  return positions;
+}
+
+let cubeData = []; // {x, y, z, hue, alive} per instance
+let cubesMesh = null;
+const _dummy = new THREE.Object3D();
+const _color = new THREE.Color();
+
+function spawnCubes() {
+  if (cubesMesh) scene.remove(cubesMesh);
+  const grid = buildCubeData();
+  cubeData = grid.map(p => {
+    // Depth index: 0 at front, increasing toward back
+    const depthIdx = Math.round((-0.5 - p.z) / 2.5); // 0, 1, 2, 3, 4, 5
+    const speed = 1 + depthIdx * 0.05; // back rows rotate progressively faster
+    return { ...p, alive: true, rx: 0, ry: 0, rotSpeed: speed };
+  });
+
+  cubesMesh = new THREE.InstancedMesh(cubeGeo, cubeMat, cubeData.length);
+  cubesMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+
+  for (let i = 0; i < cubeData.length; i++) {
+    const c = cubeData[i];
+    _dummy.position.set(c.x, c.y, c.z);
+    _dummy.rotation.set(c.rx, c.ry, 0);
+    _dummy.updateMatrix();
+    cubesMesh.setMatrixAt(i, _dummy.matrix);
+    _color.setHSL(c.hue, 0.6, 0.4);
+    cubesMesh.setColorAt(i, _color);
+  }
+  cubesMesh.instanceMatrix.needsUpdate = true;
+  cubesMesh.instanceColor.needsUpdate = true;
+  scene.add(cubesMesh);
+}
+spawnCubes();
+
+// Projectile pool
+const projectiles = [];
+const GRAVITY_Y = -4;
+
+function fireProjectile(origin, vx, vy) {
+  const geo = new THREE.SphereGeometry(0.15, 8, 8);
+  const mat = new THREE.MeshStandardMaterial({ color: 0xff6d00, emissive: 0xff3d00, emissiveIntensity: 2 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.copy(origin);
+  scene.add(mesh);
+  projectiles.push({ mesh, vx, vy, vz: -20, life: 4.0 });
+}
+
+// ============================================================
+// Hand Skeleton Visualization (2 hands)
+// ============================================================
+const JOINT_COUNT = 21;
+const HAND_CONNECTIONS = [
+  [0,1],[1,2],[2,3],[3,4],
+  [0,5],[5,6],[6,7],[7,8],
+  [0,9],[9,10],[10,11],[11,12],
+  [0,13],[13,14],[14,15],[15,16],
+  [0,17],[17,18],[18,19],[19,20],
+  [5,9],[9,13],[13,17],
+];
+
+const HAND_COLORS = [0x4fc3f7, 0xff6dff];
+const handSkeletons = [];
+for (let h = 0; h < 2; h++) {
+  const group = new THREE.Group();
+  scene.add(group);
+  const jointGeo = new THREE.SphereGeometry(0.06, 6, 6);
+  const jMat = new THREE.MeshStandardMaterial({ color: HAND_COLORS[h], emissive: HAND_COLORS[h], emissiveIntensity: 0.3 });
+  const joints = [];
+  for (let i = 0; i < JOINT_COUNT; i++) {
+    const m = new THREE.Mesh(jointGeo, jMat);
+    m.frustumCulled = false;
+    m.visible = false;
+    group.add(m);
+    joints.push(m);
+  }
+  const bMat = new THREE.LineBasicMaterial({ color: HAND_COLORS[h], linewidth: 2 });
+  const bones = [];
+  for (const [a, b] of HAND_CONNECTIONS) {
+    const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+    const line = new THREE.Line(geo, bMat);
+    line.frustumCulled = false;
+    line.visible = false;
+    group.add(line);
+    bones.push({ line, geo, a, b });
+  }
+  handSkeletons.push({ group, joints, bones });
+}
+
+function landmarkToScene(lm) {
+  return new THREE.Vector3(
+    -(lm.x - 0.5) * 12 + camera.position.x,
+    -(lm.y - 0.5) * 9 + camera.position.y,
+    camera.position.z - (6 + headPos.z * -4) + lm.z * -3
+  );
+}
+
+let currentHands = [null, null];
+
+function updateHandSkeletons() {
+  for (let h = 0; h < 2; h++) {
+    const sk = handSkeletons[h];
+    const hand = currentHands[h];
+    if (!hand) {
+      for (const m of sk.joints) m.visible = false;
+      for (const b of sk.bones) b.line.visible = false;
+      continue;
+    }
+    const positions = [];
+    for (let i = 0; i < JOINT_COUNT; i++) {
+      const p = landmarkToScene(hand[i]);
+      positions.push(p);
+      sk.joints[i].position.copy(p);
+      sk.joints[i].visible = true;
+    }
+    for (const b of sk.bones) {
+      const posAttr = b.geo.attributes.position;
+      posAttr.setXYZ(0, positions[b.a].x, positions[b.a].y, positions[b.a].z);
+      posAttr.setXYZ(1, positions[b.b].x, positions[b.b].y, positions[b.b].z);
+      posAttr.needsUpdate = true;
+      b.line.visible = true;
+    }
+  }
+}
+
+// ============================================================
+// One Euro Filter
+// ============================================================
+class OneEuroFilter {
+  constructor(freq, minCutoff, beta, dCutoff) {
+    this.freq = freq;
+    this.minCutoff = minCutoff;
+    this.beta = beta;
+    this.dCutoff = dCutoff;
+    this.xPrev = null;
+    this.dxPrev = 0;
+    this.lastTime = null;
+  }
+
+  _alpha(cutoff) {
+    const te = 1.0 / this.freq;
+    const tau = 1.0 / (2 * Math.PI * cutoff);
+    return 1.0 / (1.0 + tau / te);
+  }
+
+  filter(x, timestamp) {
+    if (this.lastTime !== null && timestamp !== undefined) {
+      const dt = (timestamp - this.lastTime) / 1000;
+      if (dt > 0) this.freq = 1.0 / dt;
+    }
+    this.lastTime = timestamp;
+
+    if (this.xPrev === null) {
+      this.xPrev = x;
+      this.dxPrev = 0;
+      return x;
+    }
+
+    const dx = (x - this.xPrev) * this.freq;
+    const aDeriv = this._alpha(this.dCutoff);
+    const edx = aDeriv * dx + (1 - aDeriv) * this.dxPrev;
+    this.dxPrev = edx;
+
+    const cutoff = this.minCutoff + this.beta * Math.abs(edx);
+    const a = this._alpha(cutoff);
+    const result = a * x + (1 - a) * this.xPrev;
+    this.xPrev = result;
+    return result;
+  }
+
+  reset() {
+    this.xPrev = null;
+    this.dxPrev = 0;
+    this.lastTime = null;
+  }
+}
+
+// ============================================================
+// Filter Parameters (persisted in localStorage)
+// ============================================================
+// Filter params: Floor (minCutoff) + Beta, matching Spellaria's setup.
+// dCutoff hardcoded at 1.0 (derivative smoothing, not user-facing).
+const FILTER_DEFAULTS = {
+  'head-floor': '0.10', 'head-beta': '3.5',
+  'hand-floor': '0.10', 'hand-beta': '3.5',
+};
+function getFilter(key) { const v = localStorage.getItem(key); return parseFloat(v !== null ? v : FILTER_DEFAULTS[key]); }
+
+const filterParams = {
+  head: { floor: getFilter('head-floor'), beta: getFilter('head-beta') },
+  hand: { floor: getFilter('hand-floor'), beta: getFilter('hand-beta') },
+};
+
+// Head filters: x, y, z (dCutoff fixed at 1.0)
+const headFilters = ['x', 'y', 'z'].map(() =>
+  new OneEuroFilter(60, filterParams.head.floor, filterParams.head.beta, 1.0)
+);
+
+// Hand filters: 2 hands x 21 joints x 3 axes
+const handFilters = Array.from({ length: 2 }, () =>
+  Array.from({ length: 21 }, () =>
+    ['x', 'y', 'z'].map(() =>
+      new OneEuroFilter(60, filterParams.hand.floor, filterParams.hand.beta, 1.0)
+    )
+  )
+);
+
+function updateFilterParams(group, param, value) {
+  const flatFilters = group === 'head' ? headFilters : handFilters.flat().flatMap(j => j);
+  for (const f of flatFilters) {
+    if (param === 'floor') f.minCutoff = value;
+    else if (param === 'beta') f.beta = value;
+  }
+}
+
+// Restore slider UI and wire up events
+// Floor: slider 1-100 maps to 0.01-1.00 (value/100)
+// Beta: slider 5-100 maps to 0.5-10.0 (value/10)
+for (const group of ['head', 'hand']) {
+  for (const param of ['floor', 'beta']) {
+    const slider = document.getElementById(`${group}-${param}`);
+    const valEl = document.getElementById(`${group}-${param}-val`);
+    const saved = filterParams[group][param];
+
+    if (param === 'floor') {
+      slider.value = Math.round(saved * 100);
+      valEl.textContent = saved.toFixed(2);
+    } else {
+      slider.value = Math.round(saved * 10);
+      valEl.textContent = saved.toFixed(1);
+    }
+
+    slider.addEventListener('input', (e) => {
+      const raw = parseInt(e.target.value);
+      const v = param === 'floor' ? raw / 100 : raw / 10;
+      filterParams[group][param] = v;
+      valEl.textContent = param === 'floor' ? v.toFixed(2) : v.toFixed(1);
+      setSetting(`${group}-${param}`, v.toString());
+      updateFilterParams(group, param, v);
+    });
+  }
+}
+
+// Recenter button: captures current position as the new center
+document.getElementById('recenter-btn').addEventListener('click', () => {
+  // Use smoothed position: offset += where the filter says we are
+  headOffset.x += headPos.x;
+  headOffset.y += headPos.y;
+  headOffset.z += headPos.z;
+  headPos.x = headPos.y = headPos.z = 0;
+  for (const f of headFilters) f.reset();
+  const btn = document.getElementById('recenter-btn');
+  btn.textContent = 'Done!';
+  setTimeout(() => { btn.textContent = 'Recenter'; }, 800);
+});
+
+// Copy settings button
+document.getElementById('copy-settings-btn').addEventListener('click', () => {
+  const settings = {
+    head: { floor: filterParams.head.floor, beta: filterParams.head.beta },
+    parallax: { amount: parallaxAmount, depth: parallaxDepth },
+    hands: { floor: filterParams.hand.floor, beta: filterParams.hand.beta },
+  };
+  navigator.clipboard.writeText(JSON.stringify(settings, null, 2));
+  const btn = document.getElementById('copy-settings-btn');
+  btn.textContent = 'Copied!';
+  setTimeout(() => { btn.textContent = 'Copy'; }, 1200);
+});
+
+// ============================================================
+// Head Tracking State
+// ============================================================
+const headPos = { x: 0, y: 0, z: 0 };
+let refEyeDist = 0;
+const headOffset = { x: 0, y: 0, z: 0 }; // subtracted from raw to recenter
+const headRaw = { x: 0, y: 0, z: 0 };    // last raw values before offset
+let headCalibrated = false;               // auto-recenter on first detection in relative mode
+let faceKeypoints = null;                 // latest eye keypoints for self-view overlay
+let headLastSeen = 0;
+const HEAD_TIMEOUT = 300;
+let handLastSeen = 0;
+let lastHandCount = 0;
+const HAND_TIMEOUT = 300;
+
+const PARALLAX_X = 6;
+const PARALLAX_Y = 4;
+const PARALLAX_Z = 3;
+let parallaxAmount = parseFloat((v => v !== null ? v : '0.7')(localStorage.getItem('parallax-amount')));
+
+// Parallax amount slider
+const parallaxAmountSlider = document.getElementById('parallax-amount');
+const parallaxAmountVal = document.getElementById('parallax-amount-val');
+parallaxAmountSlider.value = parallaxAmount;
+parallaxAmountVal.textContent = parallaxAmount.toFixed(2);
+parallaxAmountSlider.addEventListener('input', (e) => {
+  parallaxAmount = parseFloat(e.target.value);
+  parallaxAmountVal.textContent = parallaxAmount.toFixed(2);
+  setSetting('parallax-amount', parallaxAmount.toString());
+});
+
+// Parallax depth: how far back the lookAt anchor sits in Z
+let parallaxDepth = parseFloat((v => v !== null ? v : '20')(localStorage.getItem('parallax-depth')));
+const parallaxDepthSlider = document.getElementById('parallax-depth');
+const parallaxDepthVal = document.getElementById('parallax-depth-val');
+parallaxDepthSlider.value = parallaxDepth;
+parallaxDepthVal.textContent = Math.round(parallaxDepth);
+parallaxDepthSlider.addEventListener('input', (e) => {
+  parallaxDepth = parseFloat(e.target.value);
+  parallaxDepthVal.textContent = Math.round(parallaxDepth);
+  setSetting('parallax-depth', parallaxDepth.toString());
+});
+
+// ============================================================
+// Self View
+// ============================================================
+let selfViewVisible = getSetting('selfView') === 'true';
+const selfViewEl = document.getElementById('self-view');
+const svCanvas = document.getElementById('self-view-canvas');
+const svCtx = svCanvas.getContext('2d');
+const selfViewBtn = document.getElementById('self-view-btn');
+
+function updateSelfViewBtn() {
+  selfViewBtn.textContent = selfViewVisible ? 'Hide Self' : 'Self View';
+  selfViewBtn.style.color = selfViewVisible ? '#4fc3f7' : '#888';
+  selfViewEl.style.display = selfViewVisible ? 'block' : 'none';
+}
+
+function initSelfViewBtn() {
+  selfViewBtn.textContent = selfViewVisible ? 'Hide Self' : 'Self View';
+  selfViewBtn.style.color = selfViewVisible ? '#4fc3f7' : '#888';
+  if (selfViewVisible) selfViewEl.style.display = 'block';
+}
+
+selfViewBtn.addEventListener('click', () => {
+  selfViewVisible = !selfViewVisible;
+  setSetting('selfView', selfViewVisible.toString());
+  updateSelfViewBtn();
+});
+
+function drawSelfView() {
+  if (!video.videoWidth) return;
+  const w = svCanvas.width, h = svCanvas.height;
+
+  // Draw mirrored video
+  svCtx.save();
+  svCtx.translate(w, 0);
+  svCtx.scale(-1, 1);
+  svCtx.drawImage(video, 0, 0, w, h);
+  svCtx.restore();
+
+  // Hand skeletons
+  for (let hi = 0; hi < 2; hi++) {
+    const hand = currentHands[hi];
+    if (!hand) continue;
+    const color = hi === 0 ? '#4fc3f7' : '#ff6dff';
+    svCtx.strokeStyle = color;
+    svCtx.fillStyle = color;
+    svCtx.lineWidth = 1.5;
+    svCtx.globalAlpha = 0.9;
+
+    for (const [a, b] of HAND_CONNECTIONS) {
+      svCtx.beginPath();
+      svCtx.moveTo((1 - hand[a].x) * w, hand[a].y * h);
+      svCtx.lineTo((1 - hand[b].x) * w, hand[b].y * h);
+      svCtx.stroke();
+    }
+    for (const lm of hand) {
+      svCtx.beginPath();
+      svCtx.arc((1 - lm.x) * w, lm.y * h, 2.5, 0, Math.PI * 2);
+      svCtx.fill();
+    }
+  }
+
+  // Face eye points
+  if (faceKeypoints) {
+    svCtx.fillStyle = '#ff6d00';
+    svCtx.globalAlpha = 0.9;
+    for (const kp of faceKeypoints) {
+      svCtx.beginPath();
+      svCtx.arc((1 - kp.x) * w, kp.y * h, 4, 0, Math.PI * 2);
+      svCtx.fill();
+    }
+  }
+
+  svCtx.globalAlpha = 1;
+}
+
+// ============================================================
+// Hand Tracking State (per hand)
+// ============================================================
+const handStates = [
+  { pinching: false, wasPinching: false, heldBall: null },
+  { pinching: false, wasPinching: false, heldBall: null },
+];
+const pinchThreshold = 0.05;
+
+// ============================================================
+// Shared result handlers (used by both backends)
+// ============================================================
+function handleFaceResult(face) {
+  if (!face) return;
+  const kp = face.keypoints;
+  faceKeypoints = kp;
+  const leftEye = kp[0], rightEye = kp[1];
+  const now = performance.now();
+  headLastSeen = now;
+
+  headRaw.x = -((leftEye.x + rightEye.x) / 2 - 0.5) * 2;
+  headRaw.y = -((leftEye.y + rightEye.y) / 2 - 0.5) * 2;
+
+  const eyeDist = Math.hypot(rightEye.x - leftEye.x, rightEye.y - leftEye.y);
+  if (refEyeDist === 0) refEyeDist = eyeDist;
+  headRaw.z = -((eyeDist / refEyeDist) - 1);
+
+  // In relative mode, auto-calibrate on first detection
+  if (!headCalibrated && parallaxMode === 'relative') {
+    headOffset.x = headRaw.x;
+    headOffset.y = headRaw.y;
+    headOffset.z = headRaw.z;
+    headCalibrated = true;
+  }
+
+  // Raw mode: no offset. Relative mode: subtract offset.
+  const ox = parallaxMode === 'raw' ? 0 : headOffset.x;
+  const oy = parallaxMode === 'raw' ? 0 : headOffset.y;
+  const oz = parallaxMode === 'raw' ? 0 : headOffset.z;
+  const rawX = headRaw.x - ox;
+  const rawY = headRaw.y - oy;
+  const rawZ = headRaw.z - oz;
+
+  headPos.x = headFilters[0].filter(rawX, now);
+  headPos.y = headFilters[1].filter(rawY, now);
+  headPos.z = headFilters[2].filter(rawZ, now);
+}
+
+function handleHandResult(landmarks) {
+  const now = performance.now();
+  const visibleHandCount = landmarks ? Math.min(landmarks.length, 2) : 0;
+  if (visibleHandCount > 0) {
+    handLastSeen = now;
+    lastHandCount = visibleHandCount;
+  }
+  for (let h = 0; h < 2; h++) {
+    if (!landmarks || h >= landmarks.length) {
+      currentHands[h] = null;
+      handStates[h].pinching = false;
+      // Reset filters so they don't stale-lerp when hand reappears
+      for (const joint of handFilters[h]) for (const f of joint) f.reset();
+      continue;
+    }
+    const hand = landmarks[h];
+    // Filter each landmark
+    const filtered = hand.map((lm, j) => ({
+      x: handFilters[h][j][0].filter(lm.x, now),
+      y: handFilters[h][j][1].filter(lm.y, now),
+      z: handFilters[h][j][2].filter(lm.z, now),
+    }));
+    currentHands[h] = filtered;
+    const dist = Math.hypot(
+      filtered[4].x - filtered[8].x,
+      filtered[4].y - filtered[8].y,
+      filtered[4].z - filtered[8].z
+    );
+    handStates[h].pinching = dist < pinchThreshold;
+  }
+}
+
+// ============================================================
+// Head-Coupled Parallax
+// ============================================================
+let parallaxMode = getSetting('parallax') || 'relative'; // 'relative', 'raw', or 'off'
+let parallaxEnabled = parallaxMode !== 'off';
+
+function applyHeadParallax() {
+  if (!parallaxEnabled) {
+    camera.position.set(0, 0, 8);
+    camera.lookAt(0, 0, -parallaxDepth);
+    return;
+  }
+  camera.position.set(
+    headPos.x * PARALLAX_X * parallaxAmount,
+    headPos.y * PARALLAX_Y * parallaxAmount,
+    8 + headPos.z * PARALLAX_Z * parallaxAmount
+  );
+  camera.lookAt(0, 0, -parallaxDepth);
+}
+
+// ============================================================
+// Gesture-Driven Game Input
+// ============================================================
+function handleGestureInput() {
+  for (let h = 0; h < 2; h++) {
+    const hs = handStates[h];
+    const hand = currentHands[h];
+
+    if (hs.pinching && hand) {
+      const mid = {
+        x: (hand[4].x + hand[8].x) / 2,
+        y: (hand[4].y + hand[8].y) / 2,
+        z: (hand[4].z + hand[8].z) / 2,
+      };
+      const pos = landmarkToScene(mid);
+
+      if (!hs.heldBall) {
+        const geo = new THREE.SphereGeometry(0.1, 8, 8);
+        const mat = new THREE.MeshStandardMaterial({ color: 0xff6d00, emissive: 0xff3d00, emissiveIntensity: 2 });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.copy(pos);
+        scene.add(mesh);
+        hs.heldBall = { mesh, mat, startTime: performance.now(), lastPos: pos.clone(), lastTime: performance.now(), vxHist: [], vyHist: [], svx: 0, svy: 0 };
+      } else {
+        const now = performance.now();
+        const dt = (now - hs.heldBall.lastTime) / 1000;
+        if (dt > 0.001) {
+          const rawVx = (pos.x - hs.heldBall.lastPos.x) / dt;
+          const rawVy = (pos.y - hs.heldBall.lastPos.y) / dt;
+          hs.heldBall.vxHist.push(rawVx);
+          hs.heldBall.vyHist.push(rawVy);
+          if (hs.heldBall.vxHist.length > 8) hs.heldBall.vxHist.shift();
+          if (hs.heldBall.vyHist.length > 8) hs.heldBall.vyHist.shift();
+          hs.heldBall.svx = hs.heldBall.vxHist.reduce((s, v) => s + v, 0) / hs.heldBall.vxHist.length;
+          hs.heldBall.svy = hs.heldBall.vyHist.reduce((s, v) => s + v, 0) / hs.heldBall.vyHist.length;
+          hs.heldBall.lastPos.copy(pos);
+          hs.heldBall.lastTime = now;
+        }
+        hs.heldBall.mesh.position.copy(pos);
+        const t = Math.min((now - hs.heldBall.startTime) / 2000, 1);
+        hs.heldBall.mesh.scale.setScalar(1 + t * 2);
+        hs.heldBall.mat.emissiveIntensity = 2 + t * 6;
+      }
+    }
+
+    if (hs.wasPinching && !hs.pinching && hs.heldBall) {
+      const origin = hs.heldBall.mesh.position.clone();
+      const vx = hs.heldBall.svx * 0.5;
+      const vy = hs.heldBall.svy * 0.5;
+      scene.remove(hs.heldBall.mesh);
+      hs.heldBall.mesh.scale.setScalar(1);
+      fireProjectile(origin, vx, vy);
+      hs.heldBall = null;
+    }
+
+    if (!hand && hs.heldBall) {
+      scene.remove(hs.heldBall.mesh);
+      hs.heldBall.mesh.geometry.dispose();
+      hs.heldBall.mat.dispose();
+      hs.heldBall = null;
+    }
+
+    hs.wasPinching = hs.pinching;
+  }
+}
+
+// ============================================================
+// BACKEND: MediaPipe (workers)
+// ============================================================
+let faceWorker = null, handWorker = null;
+let faceReady = false, handReady = false;
+let faceIdle = true, handIdle = true;
+
+function initMediaPipeBackend(numHands) {
+  faceWorker = new Worker('face-worker.js');
+  faceWorker.onmessage = (e) => {
+    if (e.data.type === 'init') { faceReady = true; updateStatus(); }
+    if (e.data.type === 'result') { handleFaceResult(e.data.face); faceIdle = true; }
+  };
+  faceWorker.postMessage({ type: 'init' });
+
+  handWorker = new Worker('hand-worker.js');
+  handWorker.onmessage = (e) => {
+    if (e.data.type === 'init') { handReady = true; updateStatus(); }
+    if (e.data.type === 'result') { handleHandResult(e.data.landmarks); handIdle = true; }
+  };
+  handWorker.postMessage({ type: 'init', numHands });
+}
+
+function sendMediaPipeFrames() {
+  if (document.hidden) return;
+  if (!faceReady && !handReady) {
+    video.requestVideoFrameCallback(sendMediaPipeFrames);
+    return;
+  }
+  const now = performance.now();
+
+  if (faceReady && faceIdle) {
+    faceIdle = false;
+    createImageBitmap(video, { resizeWidth: 320, resizeHeight: 240 }).then(bmp => {
+      faceWorker.postMessage({ type: 'detect', image: bmp, timestamp: now }, [bmp]);
+    });
+  }
+
+  if (handReady && handIdle) {
+    handIdle = false;
+    createImageBitmap(video, { resizeWidth: 320, resizeHeight: 240 }).then(bmp => {
+      handWorker.postMessage({ type: 'detect', image: bmp, timestamp: now }, [bmp]);
+    });
+  }
+
+  video.requestVideoFrameCallback(sendMediaPipeFrames);
+}
+
+function teardownMediaPipe() {
+  if (faceWorker) { faceWorker.terminate(); faceWorker = null; }
+  if (handWorker) { handWorker.terminate(); handWorker = null; }
+  faceReady = false; handReady = false;
+  faceIdle = true; handIdle = true;
+}
+
+// ============================================================
+// BACKEND: WebGPU (gpu-vision)
+// ============================================================
+let gpuHandTracker = null;
+let gpuFaceTracker = null;
+let gpuReady = false;
+
+async function initWebGPUBackend() {
+  if (!crossOriginIsolated) {
+    const msg = 'WebGPU needs COOP/COEP headers. Start the server with: npm run dev';
+    statusEl.textContent = msg;
+    console.warn(msg);
+    console.warn('crossOriginIsolated:', crossOriginIsolated);
+    console.warn('Current origin:', location.origin);
+    return false;
+  }
+
+  try {
+    statusEl.textContent = 'Loading WebGPU modules...';
+    const { HandTracker } = await import('../../src/pipeline.js');
+    const { FaceTracker } = await import('../../src/face-pipeline.js');
+
+    gpuHandTracker = new HandTracker();
+    gpuFaceTracker = new FaceTracker(1);
+
+    statusEl.textContent = 'Loading WebGPU hand tracker...';
+    await gpuHandTracker.init((msg) => { statusEl.textContent = msg; });
+
+    statusEl.textContent = 'Loading WebGPU face tracker...';
+    await gpuFaceTracker.init((msg) => { statusEl.textContent = msg; });
+
+    gpuReady = true;
+    return true;
+  } catch (err) {
+    console.error('WebGPU init error:', err);
+    statusEl.textContent = 'WebGPU init failed: ' + err.message;
+    return false;
+  }
+}
+
+// Fire-and-forget: hand and face run independently, never block the render loop
+let gpuHandBusy = false;
+let gpuFaceBusy = false;
+
+// Benchmark tracking
+const _bench = {
+  handLatencies: [], faceLatencies: [], handCount: 0, faceCount: 0,
+  lastReport: 0, interval: 5000,
+  report(now) {
+    if (now - this.lastReport < this.interval) return;
+    this.lastReport = now;
+    if (this.handLatencies.length > 0) {
+      const sorted = [...this.handLatencies].sort((a,b) => a - b);
+      const mean = sorted.reduce((a,b) => a+b,0) / sorted.length;
+      const max = sorted[sorted.length - 1];
+      const p95 = sorted[Math.floor(sorted.length * 0.95)];
+      console.log(`[BENCH] Hand: ${mean.toFixed(1)}ms mean, ${p95.toFixed(1)}ms p95, ${max.toFixed(1)}ms max (${sorted.length} samples)`);
+    }
+    if (this.faceLatencies.length > 0) {
+      const sorted = [...this.faceLatencies].sort((a,b) => a - b);
+      const mean = sorted.reduce((a,b) => a+b,0) / sorted.length;
+      const max = sorted[sorted.length - 1];
+      const p95 = sorted[Math.floor(sorted.length * 0.95)];
+      console.log(`[BENCH] Face: ${mean.toFixed(1)}ms mean, ${p95.toFixed(1)}ms p95, ${max.toFixed(1)}ms max (${sorted.length} samples)`);
+    }
+    this.handLatencies = [];
+    this.faceLatencies = [];
+  }
+};
+
+function processWebGPUHands() {
+  if (!gpuReady || gpuHandBusy) return;
+  gpuHandBusy = true;
+  const t0 = performance.now();
+  gpuHandTracker.processFrame(video).then(result => {
+    const latency = performance.now() - t0;
+    _bench.handLatencies.push(latency);
+    if (result.hands && result.hands.length > 0) {
+      handleHandResult(result.hands.map(h => h.landmarks));
+    } else {
+      handleHandResult(null);
+    }
+    gpuHandBusy = false;
+  }).catch(err => {
+    console.error('WebGPU hand error:', err);
+    gpuHandBusy = false;
+  });
+}
+
+let faceMode = 'landmark'; // 'landmark' or 'detector'
+document.getElementById('face-mode').addEventListener('change', (e) => {
+  faceMode = e.target.value;
+  console.log('[BENCH] Face mode switched to:', faceMode);
+});
+
+function processWebGPUFace() {
+  if (!gpuReady || gpuFaceBusy) return;
+  gpuFaceBusy = true;
+  const t0 = performance.now();
+
+  if (faceMode === 'detector') {
+    // Detector-only: run BlazeFace every frame, use its 6 keypoints directly
+    createImageBitmap(video).then(bitmap => {
+      gpuFaceTracker.detectWorker.detect(bitmap).then(result => {
+        const latency = performance.now() - t0;
+        _bench.faceLatencies.push(latency);
+        if (result.detections && result.detections.length > 0) {
+          const det = result.detections[0];
+          const lb = result.letterbox;
+          // Undo letterbox on keypoints
+          const kps = det.keypoints.map(kp => ({
+            x: (kp.x - lb.offsetX) / lb.scaleX,
+            y: (kp.y - lb.offsetY) / lb.scaleY,
+        }));
+          // keypoints[0] = left eye, keypoints[1] = right eye
+          handleFaceResult({ keypoints: [kps[0], kps[1]] });
+        }
+        gpuFaceBusy = false;
+      }).catch(err => { console.error('WebGPU face detect error:', err); gpuFaceBusy = false; });
+    });
+    return;
+  }
+
+  // Landmark mode (full 478-point model)
+  gpuFaceTracker.processFrame(video, { runBlendshapes: false }).then(result => {
+    const latency = performance.now() - t0;
+    _bench.faceLatencies.push(latency);
+    if (result.faces && result.faces.length > 0) {
+      const lm = result.faces[0].landmarks;
+      if (lm && lm.length >= 264) {
+        handleFaceResult({
+          keypoints: [
+            { x: lm[263].x, y: lm[263].y },
+            { x: lm[33].x, y: lm[33].y },
+          ]
+        });
+      }
+    }
+    gpuFaceBusy = false;
+  }).catch(err => {
+    console.error('WebGPU face error:', err);
+    gpuFaceBusy = false;
+  });
+}
+
+// ============================================================
+// Frame Sending + Animation Loop
+// ============================================================
+const video = document.getElementById('webcam');
+const clock = new THREE.Clock();
+let frameCount = 0, lastFpsTime = 0, winShowing = false;
+let activeBackend = getSetting('backend');
+
+
+function animate(timestamp) {
+  if (document.hidden) return;
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const now = performance.now();
+
+  // WebGPU: process frame each loop iteration (self-throttling)
+  if (activeBackend === 'webgpu') {
+    processWebGPUHands();
+    processWebGPUFace();
+  }
+
+  applyHeadParallax();
+  handleGestureInput();
+  updateHandSkeletons();
+
+  // Rotate cubes + update instanced mesh
+  let aliveCount = 0;
+  let matrixDirty = false;
+  for (let i = 0; i < cubeData.length; i++) {
+    const c = cubeData[i];
+    if (!c.alive) continue;
+    aliveCount++;
+    c.rx += 0.001 * c.rotSpeed;
+    c.ry += 0.003 * c.rotSpeed;
+    _dummy.position.set(c.x, c.y, c.z);
+    _dummy.rotation.set(c.rx, c.ry, 0);
+    _dummy.scale.setScalar(1);
+    _dummy.updateMatrix();
+    cubesMesh.setMatrixAt(i, _dummy.matrix);
+    matrixDirty = true;
+  }
+  if (matrixDirty) cubesMesh.instanceMatrix.needsUpdate = true;
+
+  // Projectiles + collision (squared distance, no temp vectors)
+  const HIT_DIST_SQ = 0.64; // 0.8^2
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const p = projectiles[i];
+    p.vy += GRAVITY_Y * dt;
+    p.mesh.position.x += p.vx * dt;
+    p.mesh.position.y += p.vy * dt;
+    p.mesh.position.z += p.vz * dt;
+    p.life -= dt;
+
+    let hit = false;
+    const px = p.mesh.position.x, py = p.mesh.position.y, pz = p.mesh.position.z;
+    for (let j = 0; j < cubeData.length; j++) {
+      const c = cubeData[j];
+      if (!c.alive) continue;
+      const dx = px - c.x, dy = py - c.y, dz = pz - c.z;
+      if (dx * dx + dy * dy + dz * dz < HIT_DIST_SQ) {
+        c.alive = false;
+        // Hide by scaling to zero
+        _dummy.position.set(0, 0, 0);
+        _dummy.scale.setScalar(0);
+        _dummy.updateMatrix();
+        cubesMesh.setMatrixAt(j, _dummy.matrix);
+        cubesMesh.instanceMatrix.needsUpdate = true;
+        hit = true;
+        break;
+      }
+    }
+
+    if (hit || p.life <= 0) {
+      scene.remove(p.mesh);
+      p.mesh.geometry.dispose();
+      p.mesh.material.dispose();
+      projectiles.splice(i, 1);
+    }
+  }
+
+  // Win check
+  if (aliveCount === 0 && !winShowing) {
+    winShowing = true;
+    document.getElementById('winner').style.display = 'block';
+    setTimeout(() => {
+      document.getElementById('winner').style.display = 'none';
+      spawnCubes();
+      winShowing = false;
+    }, 1000);
+  }
+
+  // FPS counter
+  frameCount++;
+  if (now - lastFpsTime > 1000) {
+    document.getElementById('fps').textContent = frameCount;
+    frameCount = 0;
+    lastFpsTime = now;
+  }
+  if (activeBackend === 'webgpu') _bench.report(now);
+
+  // HUD -- throttle to 10fps and use last-seen timeouts to smooth async ML gaps
+  if (!animate._lastHud || now - animate._lastHud > 100) {
+    animate._lastHud = now;
+    const headEl = document.getElementById('head-pos');
+    const headDetected = now - headLastSeen <= HEAD_TIMEOUT;
+    if (headDetected) {
+      headEl.textContent = `x:${headPos.x.toFixed(2)} y:${headPos.y.toFixed(2)} z:${headPos.z.toFixed(2)}`;
+      headEl.style.color = '';
+    } else {
+      headEl.textContent = 'Not found';
+      headEl.style.color = '#ff4444';
+      faceKeypoints = null;
+    }
+    const handEl = document.getElementById('hand-state');
+    const numHands = currentHands.filter(h => h).length;
+    if (numHands) {
+      handLastSeen = now;
+      lastHandCount = numHands;
+      handEl.textContent = `${numHands} hand${numHands > 1 ? 's' : ''}`;
+    } else if (now - handLastSeen <= HAND_TIMEOUT && lastHandCount > 0) {
+      handEl.textContent = `${lastHandCount} hand${lastHandCount > 1 ? 's' : ''}`;
+    } else {
+      handEl.textContent = 'No hand';
+      lastHandCount = 0;
+    }
+    const gestureEl = document.getElementById('gesture-state');
+    const gestures = handStates.filter((hs, i) => currentHands[i]).map(hs => hs.pinching ? 'PINCH' : 'OPEN');
+    gestureEl.textContent = gestures.join(' / ') || '--';
+    gestureEl.className = 'val ' + (gestures.includes('PINCH') ? 'pinch' : 'open');
+  }
+
+  if (selfViewVisible) drawSelfView();
+
+  renderer.render(scene, camera);
+}
+
+// ============================================================
+// Startup
+// ============================================================
+const statusEl = document.getElementById('status');
+
+function updateStatus() {
+  if (activeBackend === 'mediapipe') {
+    const parts = [];
+    if (!faceReady) parts.push('Loading face model...');
+    if (!handReady) parts.push('Loading hand model...');
+    if (parts.length === 0) {
+      statusEl.textContent = 'Move your head to shift perspective. Pinch and release to fire.';
+      document.getElementById('hud').style.display = 'block'; document.getElementById('self-view-btn').style.display = 'block'; initSelfViewBtn();
+      document.getElementById('controls').style.display = 'block';
+      document.getElementById('filter-controls').style.display = 'block';
+      document.getElementById('backend-label').textContent = 'MediaPipe';
+    } else {
+      statusEl.textContent = parts.join(' ');
+    }
+  }
+}
+
+// --- Backend dropdown: hot-swap without reload ---
+let switching = false;
+backendSelect.addEventListener('change', async (e) => {
+  const newBackend = e.target.value;
+  setSetting('backend', newBackend);
+  e.target.blur();
+
+  // If camera hasn't started yet, just save the setting
+  if (!video.srcObject) { activeBackend = newBackend; return; }
+
+  // Prevent double-switching
+  if (switching) return;
+  switching = true;
+  statusEl.textContent = `Switching to ${newBackend === 'webgpu' ? 'WebGPU' : 'MediaPipe'}...`;
+
+  // Clear tracking state
+  currentHands = [null, null];
+  headPos.x = headPos.y = headPos.z = 0;
+  refEyeDist = 0;
+  faceKeypoints = null;
+  headLastSeen = 0;
+  handLastSeen = 0;
+  lastHandCount = 0;
+  for (const f of headFilters) f.reset();
+  for (const hand of handFilters) for (const joint of hand) for (const f of joint) f.reset();
+
+  // Tear down current backend
+  if (activeBackend === 'mediapipe') {
+    teardownMediaPipe();
+  } else {
+    gpuReady = false;
+    gpuHandTracker = null;
+    gpuFaceTracker = null;
+  }
+
+  // Start new backend
+  activeBackend = newBackend;
+  if (newBackend === 'webgpu') {
+    const ok = await initWebGPUBackend();
+    if (!ok) {
+      // WebGPU not available, revert to MediaPipe
+      activeBackend = 'mediapipe';
+      backendSelect.value = 'mediapipe';
+      setSetting('backend', 'mediapipe');
+      initMediaPipeBackend(parseInt(getSetting('numHands')));
+      video.requestVideoFrameCallback(sendMediaPipeFrames);
+    } else {
+      statusEl.textContent = 'Move your head to shift perspective. Pinch and release to fire.';
+      document.getElementById('backend-label').textContent = 'WebGPU';
+    }
+  } else {
+    initMediaPipeBackend(parseInt(getSetting('numHands')));
+    video.requestVideoFrameCallback(sendMediaPipeFrames);
+    document.getElementById('backend-label').textContent = 'MediaPipe';
+  }
+
+  switching = false;
+});
+
+// --- Hands dropdown: save + reinit if MediaPipe ---
+numHandsSelect.addEventListener('change', (e) => {
+  const numHands = parseInt(e.target.value);
+  setSetting('numHands', e.target.value);
+
+  if (activeBackend === 'mediapipe' && handWorker) {
+    handWorker.terminate();
+    handReady = false;
+    handIdle = true;
+    currentHands = [null, null];
+    handLastSeen = 0;
+    lastHandCount = 0;
+    statusEl.textContent = 'Reloading hand model...';
+    handWorker = new Worker('hand-worker.js');
+    handWorker.onmessage = (ev) => {
+      if (ev.data.type === 'init') { handReady = true; updateStatus(); }
+      if (ev.data.type === 'result') { handleHandResult(ev.data.landmarks); handIdle = true; }
+    };
+    handWorker.postMessage({ type: 'init', numHands });
+  }
+  // WebGPU always tracks 2 hands, dropdown is informational
+  e.target.blur();
+});
+
+// --- Parallax dropdown ---
+parallaxSelect.addEventListener('change', (e) => {
+  parallaxMode = e.target.value;
+  parallaxEnabled = parallaxMode !== 'off';
+  setSetting('parallax', parallaxMode);
+  if (parallaxMode === 'relative') {
+    // Re-calibrate: current smoothed position becomes new center
+    headOffset.x = headRaw.x;
+    headOffset.y = headRaw.y;
+    headOffset.z = headRaw.z;
+    headPos.x = headPos.y = headPos.z = 0;
+    for (const f of headFilters) f.reset();
+  } else if (parallaxMode === 'raw') {
+    headOffset.x = headOffset.y = headOffset.z = 0;
+    headPos.x = headPos.y = headPos.z = 0;
+    for (const f of headFilters) f.reset();
+  }
+  e.target.blur();
+});
+
+async function startCamera() {
+  document.getElementById('start-btn').style.display = 'none';
+  statusEl.textContent = 'Starting camera...';
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 60 }, latencyMode: 'realtime' }
+    });
+    video.srcObject = stream;
+    await video.play();
+
+    // Size self-view canvas to match actual video aspect ratio
+    if (video.videoWidth && video.videoHeight) {
+      const svW = 240;
+      svCanvas.width = svW;
+      svCanvas.height = Math.round(svW * video.videoHeight / video.videoWidth);
+    }
+
+    statusEl.textContent = 'Loading ML models...';
+
+    if (activeBackend === 'webgpu') {
+      const ok = await initWebGPUBackend();
+      if (ok) {
+        statusEl.textContent = 'Move your head to shift perspective. Pinch and release to fire.';
+        document.getElementById('hud').style.display = 'block'; document.getElementById('self-view-btn').style.display = 'block'; initSelfViewBtn();
+        document.getElementById('controls').style.display = 'block';
+        document.getElementById('filter-controls').style.display = 'block';
+        document.getElementById('backend-label').textContent = 'WebGPU';
+      } else {
+        // WebGPU not available, fall back to MediaPipe and persist the change
+        console.warn('WebGPU init failed, falling back to MediaPipe');
+        activeBackend = 'mediapipe';
+        backendSelect.value = 'mediapipe';
+        setSetting('backend', 'mediapipe');
+        initMediaPipeBackend(parseInt(getSetting('numHands')));
+        video.requestVideoFrameCallback(sendMediaPipeFrames);
+        document.getElementById('backend-label').textContent = 'MediaPipe';
+        document.getElementById('hud').style.display = 'block'; document.getElementById('self-view-btn').style.display = 'block'; initSelfViewBtn();
+        document.getElementById('controls').style.display = 'block';
+        document.getElementById('filter-controls').style.display = 'block';
+      }
+    } else {
+      initMediaPipeBackend(parseInt(getSetting('numHands')));
+      video.requestVideoFrameCallback(sendMediaPipeFrames);
+    }
+
+    animate();
+  } catch (err) {
+    statusEl.textContent = 'Camera error: ' + err.message;
+  }
+}
+
+document.getElementById('start-btn').addEventListener('click', startCamera);
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') startCamera();
+});
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// Pause all processing when tab is hidden, resume when visible
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && video.srcObject) {
+    clock.getDelta(); // flush stale dt so projectiles don't teleport
+    frameCount = 0;
+    lastFpsTime = performance.now();
+    requestAnimationFrame(animate);
+    if (activeBackend === 'mediapipe') {
+      video.requestVideoFrameCallback(sendMediaPipeFrames);
+    }
+  }
+});
+
+</script>
+</body>
+</html>

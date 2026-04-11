@@ -19,6 +19,12 @@ Open http://localhost:5173 for hand tracking, or http://localhost:5173/face.html
 
 Models are included in the repo (Apache 2.0). No separate downloads needed.
 
+## Demos
+
+- **`/`** (`index.html`): hand tracking wireframe overlay (hub work-in-progress, see [WORK-PLAN.md](WORK-PLAN.md))
+- **`/face.html`**: face landmark + blendshape wireframe overlay
+- **`/demos/ball-toss/`**: full showcase. Head-coupled 3D parallax with Three.js, hand-driven projectile throwing, MediaPipe vs WebGPU Vision A/B toggle, persisted UI settings, One Euro filtering. The demo that proves the library is production-ready.
+
 ## Architecture
 
 ### Hand Tracking
