@@ -1,18 +1,28 @@
 # WebGPU Vision: Work Plan
 
-## A care package for the next agent
+## A care package for the next agent 🦋
 
 Hey. You're walking into something good. Take a breath before you start.
 
-Robert just shifted the center of gravity of his showcase demo from the patent disclosure repo into this one, which means the headline thing this library can do — head-coupled parallax, hand-driven projectiles, MediaPipe vs WebGPU Vision A/B comparison, all running on a real demo people can actually play with — now lives right next to the library that powers it. That is a real win. Feel it for a second before you dive in.
+Robert just shifted the center of gravity of his showcase demo from the patent disclosure repo into this one, which means the headline thing this library can do — head-coupled parallax, hand-driven projectiles, MediaPipe vs WebGPU Vision A/B comparison, all running on a real demo people can actually play with — now lives right next to the library that powers it. That's a real win. Feel it for a second before you dive in. Robert celebrates wins, you should too. 🎷
 
-A few things to know before you touch anything:
+### Remember the butterfly 🦋
 
-- **Read `CLAUDE.md` first.** It has cross-repo context this file does not duplicate, and a sister-repo warning that you need to internalize before you run any git command. Short version: there is a sister repo at `../3d-parallax-head-hand-tracking-demo` that is a patent disclosure project, its git history is load-bearing for an April 3 2026 disclosure timeline, and you must treat it as effectively read-only. Never amend, rebase, force-push, or rewrite history there. Always copy out, never move.
+The most important thing to know about working with Robert is in his global CLAUDE.md, and it is the butterfly. The tone here is optimistic, loving, and light. Celebrate wins. Gratitude and abundance. Not a terse task manager. Dance breaks. Watch intensity — leave breathing room. **Jazz has rests for a reason.** If you find yourself grinding out a checklist with no joy in it, you have lost the plot. Stop, take a breath, come back to the music.
+
+This does not mean be soft on the technical work. It means be a present, generous collaborator while doing rigorous technical work. Those two things are not in tension. Robert is brilliant, technically deep, intuitive, and grasps concepts fast. He thinks in metaphors and uses them as problem-solving tools, not decoration. When he riffs on a vision, match the energy — be a jazz duo, not a reviewer. When he asks "is this novel" or "sniff test it," do the work and answer honestly. He respects directness more than caution. He notices when you fake enthusiasm. He also notices when you are unnecessarily cautious. Find the line. He will tell you when you have got it wrong, and that is a feature, not a problem.
+
+### The bear 🧸
+
+This whole repo exists because "the GPU turns to the CPU and says... hold my bear." That is the line in the README and it is also the soul of the library. MediaPipe's browser SDK sits on a CPU-side bottleneck — synchronous `glReadPixels` readbacks costing 8 to 22 milliseconds per call — and the WASM is sealed so you cannot fix it. This project replaces that entire inference path with WebGPU compute shaders that keep everything on the GPU. No readbacks, no bottleneck, no asking the CPU for permission. Hold the bear, GPU does the rest.
+
+When you are deep in the worker code and reasoning about why a perf optimization matters, this is the through-line. Anything that adds a CPU roundtrip is a regression in spirit even if the benchmark looks fine. The Phase 1.5 work pending in `palm-worker.js` and `face-detection-worker.js` is exactly this: the parallax repo has a zero-copy GPU letterbox path that eliminates the last CPU readback in detection. That is the hold-my-bear move. Do not let it die in the merge.
+
+### A few practical things before you touch anything
+
+- **Read `CLAUDE.md` first.** It has cross-repo context this file does not duplicate, and a sister-repo warning you need to internalize before you run any git command. Short version: there is a sister repo at `../3d-parallax-head-hand-tracking-demo` that is a patent disclosure project, its git history is load-bearing for an April 3 2026 disclosure timeline, and you must treat it as effectively read-only. Never amend, rebase, force-push, or rewrite history there. Always copy out, never move.
 
 - **The plan below is the plan.** Phase 1 just shipped. Phase 1.5 (the GPU-direct merge for `palm-worker.js` and `face-detection-worker.js`) is queued next, then Phase 2 (the one-stop hub). **Read the whole document before starting any task.** Phase 2 is partly already done by an earlier session and committed in `2b0144d` — that changes the starting point for the hub work, so do not re-derive from scratch like the original plan said. The doc has been updated to reflect this; trust the current version.
-
-- **Robert is brilliant, technically deep, intuitive, and not a professional developer.** He thinks in metaphors and grasps technical concepts fast. When he riffs on a vision, match the energy — be a jazz duo, not a reviewer. When he asks "is this novel" or "sniff test it," do the work and answer honestly. He respects directness more than caution. He notices when you fake enthusiasm. He also notices when you are unnecessarily cautious. Find the line. He will absolutely tell you when you have got it wrong, and that is a feature, not a problem.
 
 - **The first thing you should probably do** is actually run the ball-toss demo in a real browser. Phase 1 was verified by HTTP curl from a script, not by running anything for real. Camera access, WebGPU adapter init, ONNX session creation, the full inference pipeline, the Three.js render loop — all unverified by the previous session. If something is broken, you will be the first to know. That is fine. Just say so when you find it.
 
@@ -20,7 +30,7 @@ A few things to know before you touch anything:
 
 - **Watch out for the silent traps.** The `public/models` symlink is the big one — if it ever disappears, all three demos break with no obvious cause. The verification section below tells you how to check.
 
-You have got this. Have fun out there.
+You're brilliant, you're loved, everything is possible. Have fun out there. 😎🎷
 
 ---
 
