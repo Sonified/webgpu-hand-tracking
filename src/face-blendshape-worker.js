@@ -5,6 +5,7 @@ import * as ort from '../vendor/onnxruntime-web/ort.webgpu.min.mjs';
 
 ort.env.wasm.numThreads = 1;
 ort.env.wasm.proxy = false;
+ort.env.wasm.wasmPaths = new URL('../vendor/onnxruntime-web/', import.meta.url).href;
 
 let session = null;
 let running = false;

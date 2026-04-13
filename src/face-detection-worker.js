@@ -7,6 +7,7 @@ import { weightedNMS } from './face-nms.js';
 
 ort.env.wasm.numThreads = 1;
 ort.env.wasm.proxy = false;
+ort.env.wasm.wasmPaths = new URL('../vendor/onnxruntime-web/', import.meta.url).href;
 
 const FACE_SIZE = 128;
 

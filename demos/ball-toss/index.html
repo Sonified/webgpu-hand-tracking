@@ -1442,13 +1442,6 @@ async function initWebGPUBackend(silent = false) {
       return true;
     } catch (err) {
       console.error('WebGPU init error:', err);
-      // Show the actual error ON SCREEN so it's visible on mobile without
-      // fighting Safari's console. This is the only way to diagnose what
-      // Safari is actually rejecting.
-      const errDiv = document.createElement('div');
-      errDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:red;color:white;padding:12px;font:14px monospace;word-break:break-all;';
-      errDiv.textContent = 'WebGPU error: ' + (err.stack || err.message || String(err));
-      document.body.appendChild(errDiv);
       return false;
     }
   })();
