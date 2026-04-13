@@ -428,6 +428,95 @@ Our four models use maybe **15-20 unique operation types** (Conv2D, DepthwiseCon
 
 **What we gain:** iOS support, ~450x smaller download, no WASM dependency, no COOP/COEP header requirement, no service worker hacks, works on GitHub Pages natively, total control over the inference pipeline.
 
+### Confirmed: WebGPU compute works on iOS Safari (2026-04-12)
+
+Deployed a bare-bones sanity check (`webgpu-test.html`) to Cloudflare Pages. On an iPhone running iOS 26.4.1, Safari:
+- `navigator.gpu`: true
+- `requestAdapter()`: success
+- `requestDevice()`: success
+- Compute shader (multiply array by 2): correct output
+- **Result: SUCCESS**
+
+WebGPU compute is fully functional on iOS Safari. The ONLY thing blocking our demo was ONNX Runtime's WASM backend. Pure WGSL compute shaders run fine. This confirms Phase 4 is not speculative — the target platform works.
+
+### No more COOP/COEP headers
+
+The entire reason we needed `Cross-Origin-Embedder-Policy` and `Cross-Origin-Opener-Policy` headers was `SharedArrayBuffer`, which ONNX Runtime's multi-threaded WASM requires. Pure WebGPU compute shaders don't use SharedArrayBuffer. No WASM threads, no special headers needed.
+
+This means:
+- **GitHub Pages works natively** (no service worker shim)
+- **Any static host works** (S3, Netlify, Vercel, Cloudflare, anything)
+- **No `crossOriginIsolated` requirement**
+- The `coi-serviceworker.js` hack can be deleted entirely
+- Just HTML + JS + WGSL. Open the page, it runs.
+
+### Fused mega-shaders: why we'll be FASTER than ORT
+
+ORT runs each neural network operation as a separate GPU shader dispatch. Conv2D, then BatchNorm, then Relu — three dispatches, three intermediate buffers, three round-trips through the GPU command queue. It has to do this because it's general-purpose: it doesn't know at compile time which ops will be adjacent.
+
+We know exactly which ops are adjacent. Our models are fixed. So we fuse entire blocks:
+
+| ORT approach (6 dispatches) | Fused approach (1 dispatch) |
+|---|---|
+| Conv2D → buffer → BatchNorm → buffer → Relu → buffer → Conv2D → buffer → BatchNorm → buffer → Relu | Conv+BN+Relu+Conv+BN+Relu as ONE shader |
+
+Specific fusions available in our models:
+- **Pre-bake BatchNorm into Conv2D weights at build time.** BN is just `(x - mean) / sqrt(var) * scale + bias` — fold scale/bias into the conv weights offline. Zero runtime cost, one fewer op.
+- **Fuse Conv+Relu** — clamp output at the end of the convolution loop. Trivial.
+- **Fuse entire residual blocks** — Conv+BN+Relu+Conv+BN+Add+Relu as one monolithic shader. One dispatch instead of seven.
+- **Inline PReLU** — we decomposed PReLU into 4 ops (`Relu(x) + slope * -Relu(-x)`) for ORT compatibility. A custom shader is just `x > 0 ? x : slope * x`. One instruction instead of four dispatches.
+
+Result: maybe **5-8 fused mega-shaders per model** instead of 60-80 individual dispatches. Fewer dispatches = less GPU idle time = potentially faster than ORT even on desktop.
+
+### Verification: zero secret sauce
+
+ONNX is an open format. Every operation, weight, shape, and connection in our models is fully readable:
+```python
+import onnx
+model = onnx.load("palm_detection_lite.onnx")
+for node in model.graph.node:
+    print(node.op_type, [i for i in node.input], [o for o in node.output])
+```
+
+We can verify correctness by running ORT and our custom engine side-by-side, comparing output tensors at every stage. `GPUCommandEncoder` timestamps give nanosecond-precision per-dispatch benchmarks. Every step is measurable, every result is verifiable.
+
+### Incremental build plan
+
+Each step produces a working, testable artifact. We never go more than a day without something we can benchmark against ORT.
+
+**Step 1: Model surgery (no code, pure analysis)**
+- Dump the computation graph of all 4 models (palm, hand landmark, face detector, face landmark)
+- List every unique op type and count occurrences
+- Identify fusion opportunities (consecutive Conv+BN+Relu blocks, residual connections)
+- Pre-bake BatchNorm into Conv weights (offline Python script, produces new weight files)
+- Output: a JSON "fused graph" for each model describing the mega-shader sequence
+
+**Step 2: One model, one shader at a time (palm detector first)**
+- Palm detection is the simplest model (smallest graph, 192x192 input)
+- Write the first fused mega-shader (probably the initial Conv+BN+Relu block)
+- Hardcode buffer sizes (we know the exact tensor shapes)
+- Run it, compare output against ORT's output for the same layer
+- Iterate until the full palm detector runs end-to-end on pure WGSL
+- Benchmark against ORT's palm detector on the same hardware
+
+**Step 3: Hand landmark model**
+- Same process. Slightly different ops (the landmark model has fully-connected layers at the end)
+- Once both palm + hand landmark work, wire them into the existing pipeline in place of ORT
+- The ball-toss demo runs on pure WGSL for hand tracking. First real proof of life.
+
+**Step 4: Face detector + face landmark + blendshapes**
+- Face detector is almost identical to palm (same architecture, different weights/anchors)
+- Face landmark has PReLU — fuse it back to inline (the decomposition was an ORT workaround)
+- Face blendshape model (52 expression coefficients from 146 landmarks)
+- Full face tracking + blendshapes on pure WGSL. Ball-toss demo is now 100% ORT-free.
+
+**Step 5: Delete ONNX Runtime**
+- Remove `vendor/onnxruntime-web/` (23MB)
+- Remove all worker code that references ORT
+- The library is now pure WebGPU. ~50KB. Works on iOS Safari.
+- Benchmark the full pipeline against the ORT version
+- Ship it. Write the blog post. Tell Google.
+
 ### The original Phase 4 plan (still relevant for context)
 
 ### The realization
