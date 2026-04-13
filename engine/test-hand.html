@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Hand Landmark Test</title></head>
+<body style="background:#111;color:#0f0;font:13px monospace;padding:16px;white-space:pre-wrap;">
+<div id="log">Hand Landmark Model Test
+========================
+</div>
+<script type="module">
+import { ModelRunner } from './model-runner.js';
+
+const L = document.getElementById('log');
+const log = s => { L.textContent += s + '\n'; console.log(s); };
+
+(async () => {
+try {
+  if (!navigator.gpu) { log('No WebGPU'); return; }
+  const adapter = await navigator.gpu.requestAdapter();
+  const device = await adapter.requestDevice();
+  log('WebGPU ready');
+
+  // Load model
+  const graph = await (await fetch('../models/hand_landmark_full.json')).json();
+  const allWeights = new Float32Array(await (await fetch('../models/hand_landmark_full.bin')).arrayBuffer());
+  log(`Model: ${graph.graph.length} nodes, ${(allWeights.length*4/1024/1024).toFixed(2)} MB`);
+
+  // Upload weights
+  const W = {};
+  for (const [name, info] of Object.entries(graph.weights)) {
+    if (info.length === 0) continue;
+    const buf = device.createBuffer({ size: Math.max(info.length * 4, 4), usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+    device.queue.writeBuffer(buf, 0, allWeights.subarray(info.offset, info.offset + info.length));
+    W[name] = buf;
+  }
+
+  // Compile shaders
+  const mkPipeline = async (name) => {
+    const code = await (await fetch(`./${name}.wgsl`)).text();
+    return device.createComputePipeline({ layout: 'auto', compute: { module: device.createShaderModule({ code }), entryPoint: 'main' } });
+  };
+  const P = {
+    conv2d: await mkPipeline('conv2d'),
+    maxpool: await mkPipeline('maxpool'),
+    resize: await mkPipeline('resize'),
+    gemm: await mkPipeline('gemm'),
+    global_avg_pool: await mkPipeline('global_avg_pool'),
+    add: await mkPipeline('add'),
+  };
+  log('Shaders compiled');
+
+  // Prepare input (NCHW, 0.5 gray)
+  const H = 224, Wi = 224;
+  const inputNCHW = new Float32Array(3 * H * Wi).fill(0.5);
+  const inputBuf = device.createBuffer({
+    size: inputNCHW.byteLength,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+  });
+  device.queue.writeBuffer(inputBuf, 0, inputNCHW);
+
+  // The graph starts with Transpose NHWC->NCHW. We provide NCHW directly,
+  // so the Transpose is a no-op (same buffer). The model-runner handles this.
+
+  const runner = new ModelRunner(device, P, W);
+
+  // Run once for correctness
+  log('\nRunning inference...');
+  const t0 = performance.now();
+  const outputs = await runner.run(graph, inputBuf);
+  const t1 = performance.now();
+  log(`Inference time: ${(t1 - t0).toFixed(1)}ms`);
+
+  // Show outputs
+  const ref = await (await fetch('./hand_reference.json')).json();
+  log('\n--- Results ---');
+  for (const [name, data] of Object.entries(outputs)) {
+    const vals = Array.from(data.slice(0, 6)).map(v => v.toFixed(4)).join(', ');
+    log(`${name}: [${vals}${data.length > 6 ? ', ...' : ''}]`);
+
+    if (ref[name]) {
+      let maxErr = 0;
+      const refArr = ref[name];
+      for (let i = 0; i < Math.min(data.length, refArr.length); i++) {
+        maxErr = Math.max(maxErr, Math.abs(data[i] - refArr[i]));
+      }
+      const refVals = refArr.slice(0, 6).map(v => v.toFixed(4)).join(', ');
+      log(`  ref: [${refVals}${refArr.length > 6 ? ', ...' : ''}]`);
+      log(`  max error: ${maxErr.toFixed(6)} ${maxErr < 0.1 ? '✅' : '❌'}`);
+    }
+  }
+
+  // Benchmark
+  log('\n--- Benchmark (50 iterations) ---');
+  // Warmup
+  for (let i = 0; i < 5; i++) await runner.run(graph, inputBuf);
+  const bt0 = performance.now();
+  const N = 50;
+  for (let i = 0; i < N; i++) await runner.run(graph, inputBuf);
+  const perFrame = (performance.now() - bt0) / N;
+  log(`WGSL engine: ${perFrame.toFixed(2)} ms/inference`);
+
+  // ORT comparison
+  try {
+    const ort = await import('../vendor/onnxruntime-web/ort.webgpu.min.mjs');
+    ort.env.wasm.numThreads = 1; ort.env.wasm.proxy = false;
+    const sess = await ort.InferenceSession.create('../models/hand_landmark_full.onnx', { executionProviders: ['wasm'] });
+    const tensor = new ort.Tensor('float32', new Float32Array(H*Wi*3).fill(0.5), [1, H, Wi, 3]);
+    for (let i = 0; i < 5; i++) await sess.run({ input_1: tensor });
+    const ot0 = performance.now();
+    for (let i = 0; i < N; i++) await sess.run({ input_1: tensor });
+    const ortTime = (performance.now() - ot0) / N;
+    log(`ORT WASM:    ${ortTime.toFixed(2)} ms/inference`);
+    log(`Speedup:     ${(ortTime / perFrame).toFixed(1)}x`);
+  } catch (e) { log(`ORT: ${e.message}`); }
+
+  log('\n========================');
+  log('done');
+} catch (e) {
+  log('ERROR: ' + e.message);
+  log(e.stack || '');
+}
+})();
+</script>
+</body>
+</html>
