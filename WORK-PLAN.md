@@ -529,6 +529,10 @@ The custom WGSL engine doesn't care which model's weights it runs. Once it works
 - Exports to ONNX cleanly (we'd dump the graph and write fused shaders, same process)
 - Backed by Chinese University of Hong Kong / SenseTime
 
+**Confirmed viable (2026-04-12):** RTMPose has pre-exported ONNX models available for download (hand, face, body). [rtmlib](https://github.com/Tau-J/rtmlib) is a lightweight Python library that runs RTMPose inference with just ONNX Runtime — no PyTorch or MMCV needed. Official export pipeline via `tools/deploy.py` for custom configs. We could grab a pre-exported ONNX hand model today, dump its graph, and see exactly which ops it uses. When our WGSL engine is ready, swapping models is: dump graph → write fused shaders → done.
+
+Sources: [RTMPose project](https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose), [rtmlib](https://github.com/Tau-J/rtmlib), [MMPose deployment docs](https://mmpose.readthedocs.io/en/latest/user_guides/how_to_deploy.html)
+
 Other options surveyed (2026-04-12):
 - **OpenPose**: best accuracy but non-commercial license. Dead end for a product.
 - **YOLOv8/v11 Pose**: good accuracy, fast, but AGPL license (or paid commercial). Risky.
