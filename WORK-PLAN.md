@@ -399,7 +399,7 @@ Hosting is currently `https://models.now.audio` in production via [model-urls.js
 
 ## Phase 4: Drop ONNX Runtime entirely — custom WGSL inference engine
 
-**Status:** designed and parked. This is no longer just a performance optimization — it is the path to iOS support and the only way to make the demo work on phones.
+**Status: ALL FOUR MODELS VERIFIED (2026-04-12).** The custom WGSL inference engine is built and produces output matching ONNX Runtime within 0.0005 for all four models. Not yet wired into the demo — still running from test harnesses.
 
 ### Why this just became urgent (2026-04-12)
 
@@ -484,35 +484,54 @@ We can verify correctness by running ORT and our custom engine side-by-side, com
 
 Each step produces a working, testable artifact. We never go more than a day without something we can benchmark against ORT.
 
-**Step 1: Model surgery (no code, pure analysis)**
-- Dump the computation graph of all 4 models (palm, hand landmark, face detector, face landmark)
-- List every unique op type and count occurrences
-- Identify fusion opportunities (consecutive Conv+BN+Relu blocks, residual connections)
-- Pre-bake BatchNorm into Conv weights (offline Python script, produces new weight files)
-- Output: a JSON "fused graph" for each model describing the mega-shader sequence
+**Step 1: Model surgery ✅ DONE (2026-04-12)**
+All 4 models extracted: graph JSON + flat weight binary for each. BatchNorm already pre-baked by ONNX export. Face landmark PReLU decomposition (6 ops) fused back to native PReLU (1 op) during graph preprocessing.
 
-**Step 2: One model, one shader at a time (palm detector first)**
-- Palm detection is the simplest model (smallest graph, 192x192 input)
-- Write the first fused mega-shader (probably the initial Conv+BN+Relu block)
-- Hardcode buffer sizes (we know the exact tensor shapes)
-- Run it, compare output against ORT's output for the same layer
-- Iterate until the full palm detector runs end-to-end on pure WGSL
-- Benchmark against ORT's palm detector on the same hardware
+**Step 2: Palm detector ✅ DONE**
+5 WGSL shaders (conv2d, maxpool, resize, add, pad_channels) + 2 more (gemm, global_avg_pool). Palm runs end-to-end, output matches ORT within 0.000211. 1.8x faster than ORT-GPU on palm.
 
-**Step 3: Hand landmark model**
-- Same process. Slightly different ops (the landmark model has fully-connected layers at the end)
-- Once both palm + hand landmark work, wire them into the existing pipeline in place of ORT
-- The ball-toss demo runs on pure WGSL for hand tracking. First real proof of life.
+**Step 3: Hand landmark ✅ DONE**
+All 4 outputs match ORT (landmarks, hand flag, handedness, world landmarks). Generic ModelRunner handles the full MobileNetV2 architecture. Added ReLU6, Gemm+Sigmoid, GlobalAvgPool support.
 
-**Step 4: Face detector + face landmark + blendshapes**
-- Face detector is almost identical to palm (same architecture, different weights/anchors)
-- Face landmark has PReLU — fuse it back to inline (the decomposition was an ORT workaround)
-- Face blendshape model (52 expression coefficients from 146 landmarks)
-- Full face tracking + blendshapes on pure WGSL. Ball-toss demo is now 100% ORT-free.
+**Step 4: Face detector + face landmark ✅ DONE (blendshapes still TODO)**
+Both models verified. Face detector needed standalone Relu fix. Face landmark needed standalone PReLU fix + PReLU re-fusion from decomposed form. Blendshape model (face_blendshapes.onnx) not yet extracted.
 
-**Step 5: Delete ONNX Runtime**
-- Remove `vendor/onnxruntime-web/` (23MB)
-- Remove all worker code that references ORT
+**Step 5: Optimize + wire into demo (NEXT)**
+- **Quick win: pre-allocate pipelines** — currently creating uniform buffers per dispatch. Pool and reuse. See MEGA_SHADER_DESIGN.md.
+- **Level 1 fusion: residual block mega-shaders** — fuse DW Conv + 1x1 Conv + Add + Activation into single dispatches. Design doc ready.
+- **Move standalone PReLU/Relu/Sigmoid to GPU** — currently 34 standalone PReLUs in face landmark run on CPU (read-back + re-upload). Need GPU dispatch.
+- **Wire into ball-toss demo** — replace ORT workers with WGSL engine. The existing `pipeline.js` and `face-pipeline.js` worker architecture stays; just swap the inference call.
+- **Real camera input benchmark** — current benchmarks use 0.5 gray images. Need to test with actual camera frames for realistic performance numbers.
+- **Delete ORT** — remove `vendor/onnxruntime-web/` (23MB), remove all ORT worker code. Library becomes pure WebGPU.
+
+**Current engine files (in `engine/` directory):**
+```
+conv2d.wgsl          — Conv2D + PReLU/ReLU6/ReLU + residual Add (the workhorse)
+maxpool.wgsl         — MaxPool 2x2 + channel padding
+resize.wgsl          — Bilinear 2x upsample (FPN heads)
+add.wgsl             — Element-wise add/relu (modes: add, relu, add+relu)
+pad_channels.wgsl    — Channel zero-padding for residual connections
+gemm.wgsl            — Matrix multiply + optional sigmoid (FC layers)
+global_avg_pool.wgsl — Global average pooling
+model-runner.js      — Generic graph walker: reads JSON, dispatches shaders
+test.html            — Palm detector full pipeline test + ORT comparison
+test-hand.html       — Hand landmark test
+test-face-det.html   — Face detector test
+test-face-lm.html    — Face landmark test
+bench.html/bench.mjs — Benchmark harness
+benchmark-baseline.md — Pre-optimization benchmark numbers
+MEGA_SHADER_DESIGN.md — Fusion optimization design doc
+```
+
+**Benchmark baseline (headless Chrome, M1 Max, naive per-dispatch):**
+| Model | WGSL (ms) | ORT-GPU (ms) | ORT-CPU (ms) |
+|---|---|---|---|
+| Palm Detector | 18.61 | 33.41 | 29.59 |
+| Hand Landmark | 12.67 | 7.02 | 18.32 |
+| Face Detector | 12.70 | 3.73 | 3.07 |
+| Face Landmark | 53.61 | — | 14.49 |
+
+Palm is faster than ORT. Hand/face are slower due to dispatch overhead (50+ dispatches per model) and CPU-side PReLU/Relu/Sigmoid ops. The mega-shader fusion + pre-allocated pipelines should fix this.
 - The library is now pure WebGPU. ~50KB. Works on iOS Safari.
 - Benchmark the full pipeline against the ORT version
 - Ship it. Write the blog post. Tell Google.
