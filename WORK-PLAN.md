@@ -517,6 +517,25 @@ Each step produces a working, testable artifact. We never go more than a day wit
 - Benchmark the full pipeline against the ORT version
 - Ship it. Write the blog post. Tell Google.
 
+### Future: model upgrades once the engine exists
+
+The custom WGSL engine doesn't care which model's weights it runs. Once it works with our current MediaPipe models (known-good, benchmarked), we can swap in better models.
+
+**RTMPose** (from OpenMMLab/MMPose) is the leading candidate:
+- Apache 2.0 license (commercial OK)
+- Accuracy close to OpenPose (the research gold standard), speed close to MediaPipe
+- Hand-specific models available
+- Simpler architecture than MediaPipe's two-stage cascade (can do single-stage)
+- Exports to ONNX cleanly (we'd dump the graph and write fused shaders, same process)
+- Backed by Chinese University of Hong Kong / SenseTime
+
+Other options surveyed (2026-04-12):
+- **OpenPose**: best accuracy but non-commercial license. Dead end for a product.
+- **YOLOv8/v11 Pose**: good accuracy, fast, but AGPL license (or paid commercial). Risky.
+- **MMPose (general)**: research toolkit, many models, Apache 2.0. RTMPose is their production-grade export.
+
+None of these run on WebGPU today. They all assume CUDA/PyTorch. Our engine is the thing that makes them browser-runnable. Build the engine first on MediaPipe models, explore upgrades after.
+
 ### The original Phase 4 plan (still relevant for context)
 
 ### The realization
