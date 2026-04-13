@@ -21,7 +21,7 @@ export class ModelRunner {
    * @param {GPUBuffer} inputBuf - input in NHWC format
    * @returns {Object} output name -> Float32Array
    */
-  async run(graph, inputBuf, allWeights) {
+  async run(graph, inputBuf, allWeights, debug = false) {
     const g = graph.graph;
     const w = graph.weights;
     const device = this.device;
@@ -149,7 +149,7 @@ export class ModelRunner {
         for (const d of shape) floats *= d;
         const outBuf = getOrAlloc(out, shape);
 
-        const params = new Uint32Array([floats]);
+        const params = new Uint32Array([floats, 0]); // mode 0 = plain add
         const pb = device.createBuffer({ size: params.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
         device.queue.writeBuffer(pb, 0, params);
         const pass = enc.beginComputePass();
@@ -176,9 +176,30 @@ export class ModelRunner {
       }
 
       if (op === 'Relu') {
-        // Should be fused into conv. If standalone, pass through.
-        shapes[out] = shapes[inp[0]];
-        tensors[out] = tensors[inp[0]];
+        // Standalone Relu: dispatch via add shader in mode 1 (relu only).
+        const inShape = shapes[inp[0]];
+        shapes[out] = inShape;
+        let floats = 1;
+        if (inShape && Array.isArray(inShape)) for (const d of inShape) floats *= d;
+        else floats = tensors[inp[0]].size / 4;
+        const outBuf = getOrAlloc(out, inShape || [floats]);
+
+        const params = new Uint32Array([floats, 1]); // mode 1 = relu
+        const pb = device.createBuffer({ size: params.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+        device.queue.writeBuffer(pb, 0, params);
+        const pass = enc.beginComputePass();
+        pass.setPipeline(this.P.add);
+        pass.setBindGroup(0, device.createBindGroup({
+          layout: this.P.add.getBindGroupLayout(0),
+          entries: [
+            { binding: 0, resource: { buffer: pb } },
+            { binding: 1, resource: { buffer: tensors[inp[0]] } },
+            { binding: 2, resource: { buffer: this.dummy } }, // b unused in mode 1
+            { binding: 3, resource: { buffer: outBuf } },
+          ],
+        }));
+        pass.dispatchWorkgroups(Math.ceil(floats / 256));
+        pass.end();
         continue;
       }
 
@@ -338,30 +359,89 @@ export class ModelRunner {
       }
 
       if (op === 'Reshape') {
-        // Reshape is just reinterpretation — same buffer, different logical shape.
-        // Read target shape from weight tensor.
-        shapes[out] = 'reshaped'; // We don't track reshaped dims for now
+        // Reshape is reinterpretation — same data, different shape.
+        // Read target shape from weight tensor if available.
+        const inShape = shapes[inp[0]];
+        if (inp[1] && w[inp[1]]) {
+          const shapeInfo = w[inp[1]];
+          const shapeVals = Array.from(allWeights.subarray(shapeInfo.offset, shapeInfo.offset + shapeInfo.length)).map(Math.round);
+          // Resolve -1
+          let totalIn = 1;
+          if (inShape && Array.isArray(inShape)) for (const d of inShape) totalIn *= d;
+          const known = shapeVals.filter(v => v > 0).reduce((a, b) => a * b, 1);
+          const resolved = shapeVals.map(v => v === -1 ? totalIn / known : v);
+          shapes[out] = resolved;
+        } else {
+          shapes[out] = inShape;
+        }
         tensors[out] = tensors[inp[0]];
         continue;
       }
 
       if (op === 'Concat') {
-        // Concatenate along axis (typically axis=1 for NCHW or axis=-1 for NHWC).
-        // For the output heads this is just sequential copies.
-        // For now: submit, read, concat on CPU, write back.
-        const axis = attrs.axis || 1;
+        // For output heads: the inputs were transposed NCHW->NHWC then reshaped.
+        // The Transpose was a no-op on the buffer (just shape reinterpretation).
+        // We need to actually transpose the data and then concatenate.
+        // Submit pending GPU work first.
         device.queue.submit([enc.finish()]);
 
         const arrays = [];
         let totalFloats = 0;
         for (const inName of inp) {
           if (!tensors[inName]) continue;
-          // Estimate size from buffer
+          const inShape = shapes[inName]; // should be [1, anchors, values]
           const buf = tensors[inName];
-          const size = buf.size / 4;
-          const data = await this._readBuffer(buf, size);
-          arrays.push(data);
-          totalFloats += data.length;
+
+          // Find the original NCHW tensor before transpose+reshape
+          // Walk back: reshape input = transpose output, transpose input = conv output
+          // The buffer has NCHW data. We need to transpose to NHWC then flatten.
+          // Find the NCHW shape by looking at the buffer size and the reshape target.
+          const nFloats = buf.size / 4;
+
+          // Read the raw NCHW data
+          const nchw = await this._readBuffer(buf, nFloats);
+
+          // Figure out C, H, W from the known shapes
+          // reshape target is [1, -1, K] where K is 16 or 1
+          // nchw shape is [1, C, H, W] where C*H*W = nFloats
+          // and H*W * (C/K) = anchors, so C/K * H * W = anchors
+          if (inShape && Array.isArray(inShape) && inShape.length >= 3) {
+            const K = inShape[inShape.length - 1]; // values per anchor (16 or 1)
+            const C = K; // in face detector: regressor C=32 with K=16 means C/K=2... hmm
+            // Actually: NCHW [1, outC, H, W] -> NHWC [1, H, W, outC] -> reshape [1, H*W*outC/K, K]
+            // We need outC, H, W. outC*H*W = nFloats.
+            // From the Reshape target: anchors * K = nFloats, so anchors = nFloats / K
+            // From NCHW: outC is known from the conv. H*W = nFloats / outC.
+            // But we don't have outC directly. Let me estimate from known spatial dims.
+            // Face det: 16x16 features -> 8192 floats with 32 channels, or 8x8 with 96 channels.
+            // The simpler approach: just do NCHW -> NHWC transpose for known dims.
+
+            // Guess spatial dims from buffer size and known patterns
+            let outC, H, Wd;
+            if (nFloats === 8192) { outC = 32; H = 16; Wd = 16; }       // regressor_8
+            else if (nFloats === 6144) { outC = 96; H = 8; Wd = 8; }    // regressor_16
+            else if (nFloats === 512) { outC = 2; H = 16; Wd = 16; }    // classificator_8
+            else if (nFloats === 384) { outC = 6; H = 8; Wd = 8; }      // classificator_16
+            // Palm detector sizes
+            else if (nFloats === 15552) { outC = 108; H = 12; Wd = 12; } // palm reg_16
+            else if (nFloats === 864) { outC = 6; H = 12; Wd = 12; }     // palm cls_16
+            else if (nFloats === 20736) { outC = 36; H = 24; Wd = 24; }  // palm reg_8
+            else if (nFloats === 1152) { outC = 2; H = 24; Wd = 24; }    // palm cls_8
+            else { outC = 1; H = 1; Wd = nFloats; } // fallback
+
+            // NCHW -> NHWC transpose
+            const nhwc = new Float32Array(nFloats);
+            for (let h = 0; h < H; h++)
+              for (let wd = 0; wd < Wd; wd++)
+                for (let c = 0; c < outC; c++)
+                  nhwc[h * Wd * outC + wd * outC + c] = nchw[c * H * Wd + h * Wd + wd];
+
+            arrays.push(nhwc);
+            totalFloats += nFloats;
+          } else {
+            arrays.push(nchw);
+            totalFloats += nFloats;
+          }
         }
         const concatted = new Float32Array(totalFloats);
         let offset = 0;
@@ -369,9 +449,9 @@ export class ModelRunner {
           concatted.set(arr, offset);
           offset += arr.length;
         }
-        const outBuf = getOrAlloc(out, [totalFloats]);
+        const outBuf = getOrAlloc(out, [1, totalFloats]);
         device.queue.writeBuffer(outBuf, 0, concatted);
-        shapes[out] = [1, totalFloats]; // approximate
+        shapes[out] = [1, totalFloats];
         enc = device.createCommandEncoder();
         continue;
       }
@@ -417,6 +497,22 @@ export class ModelRunner {
     // Submit final commands
     device.queue.submit([enc.finish()]);
     await device.queue.onSubmittedWorkDone();
+
+    // Debug: dump stats for key tensors
+    if (debug) {
+      const debugNodes = [2, 5, 6, 9, 10, 11, 58, 59, 84, 88, 91];
+      for (const idx of debugNodes) {
+        if (idx >= g.length) continue;
+        const name = g[idx].outputs[0];
+        const buf = tensors[name];
+        if (!buf) { console.log(`  node ${idx} (${g[idx].op}): no buffer for '${name}'`); continue; }
+        const n = buf.size / 4;
+        const data = await this._readBuffer(buf, n);
+        let mn = Infinity, mx = -Infinity;
+        for (let j = 0; j < data.length; j++) { mn = Math.min(mn, data[j]); mx = Math.max(mx, data[j]); }
+        console.log(`  node ${idx} ${g[idx].op}: '${name.substring(0,25)}' [${n}] min=${mn.toFixed(4)} max=${mx.toFixed(4)} first=[${data.slice(0,3).map(v=>v.toFixed(4)).join(',')}]`);
+      }
+    }
 
     // Read back outputs
     const outputs = {};

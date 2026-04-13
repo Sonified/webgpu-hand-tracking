@@ -53,7 +53,7 @@ try {
 
   log('\nRunning inference...');
   const t0 = performance.now();
-  const outputs = await runner.run(graph, inputBuf, allWeights);
+  const outputs = await runner.run(graph, inputBuf, allWeights, true);
   log(`Inference time: ${(performance.now() - t0).toFixed(1)}ms`);
 
   const ref = await (await fetch('./face_det_reference.json')).json();
