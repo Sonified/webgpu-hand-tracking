@@ -202,14 +202,14 @@
   <div class="section-label" style="display:flex; justify-content:space-between; align-items:center;">Head <button id="recenter-btn" style="background:#222; color:#4fc3f7; border:1px solid #444; border-radius:4px; padding:2px 8px; font-size:0.75rem; cursor:pointer; font-weight:400;">Recenter</button></div>
   <div class="param-row" style="margin-top:6px;"><span class="param-name">Model</span><select id="face-mode" style="flex:1; background:#222; color:#ccc; border:1px solid #444; border-radius:3px; padding:1px 4px; font-size:0.75rem;"><option value="landmark">Landmark (478pt, precise)</option><option value="detector">Detector (6pt, fast)</option></select></div>
   <div class="param-row" style="margin-top:4px;"><span class="param-name">ROI</span><select id="face-roi" style="flex:1; background:#222; color:#ccc; border:1px solid #444; border-radius:3px; padding:1px 4px; font-size:0.75rem;"><option value="auto">Auto (center only)</option><option value="off">Off (full frame)</option><option value="on">On (always crop)</option></select></div>
-  <div class="param-row" style="margin-top:6px;"><span class="param-name">Floor</span><input type="range" id="head-floor" min="1" max="1000" step="1" value="100"><span class="param-val" id="head-floor-val">0.100</span></div>
-  <div class="param-row"><span class="param-name">Beta</span><input type="range" id="head-beta" min="0" max="500" step="5" value="35"><span class="param-val" id="head-beta-val">3.5</span></div>
+  <div class="param-row" style="margin-top:6px;"><span class="param-name">Floor</span><input type="range" id="head-floor" min="1" max="1000" step="1" value="146"><span class="param-val" id="head-floor-val">0.146</span></div>
+  <div class="param-row"><span class="param-name">Beta</span><input type="range" id="head-beta" min="0" max="500" step="5" value="460"><span class="param-val" id="head-beta-val">46.0</span></div>
   <div class="section-label" style="margin-top:6px;">Parallax</div>
-  <div class="param-row"><span class="param-name">Amount</span><input type="range" id="parallax-amount" min="0" max="2" step="0.05" value="0.7"><span class="param-val" id="parallax-amount-val">0.70</span></div>
+  <div class="param-row"><span class="param-name">Amount</span><input type="range" id="parallax-amount" min="0" max="2" step="0.05" value="0.6"><span class="param-val" id="parallax-amount-val">0.60</span></div>
   <div class="param-row"><span class="param-name">Depth</span><input type="range" id="parallax-depth" min="15" max="80" step="1" value="20"><span class="param-val" id="parallax-depth-val">20</span></div>
   <div class="section-label">Hands</div>
   <div class="param-row"><span class="param-name">Floor</span><input type="range" id="hand-floor" min="1" max="1000" step="1" value="100"><span class="param-val" id="hand-floor-val">0.100</span></div>
-  <div class="param-row"><span class="param-name">Beta</span><input type="range" id="hand-beta" min="0" max="500" step="5" value="35"><span class="param-val" id="hand-beta-val">3.5</span></div>
+  <div class="param-row"><span class="param-name">Beta</span><input type="range" id="hand-beta" min="0" max="500" step="5" value="200"><span class="param-val" id="hand-beta-val">20.0</span></div>
   <div class="param-row" style="margin-top:6px;"><span class="param-name">OpenThresh</span><select id="open-thresh" style="flex:1; background:#222; color:#ccc; border:1px solid #444; border-radius:3px; padding:1px 4px; font-size:0.75rem;"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option></select></div>
   <div style="text-align:right; margin-top:8px;"><button id="copy-settings-btn" style="background:#222; color:#4fc3f7; border:1px solid #444; border-radius:4px; padding:3px 10px; font-size:0.8rem; cursor:pointer;">Copy Settings</button></div>
 </div>
@@ -291,9 +291,10 @@ function setSetting(key, val) { localStorage.setItem(key, val); }
 // lifted into the active profile without loss; the flat key is shadowed once
 // the slider is touched in that profile.
 const PROFILE_DEFAULTS = {
-  'head-floor': 0.10, 'head-beta': 3.5,
-  'hand-floor': 0.10, 'hand-beta': 3.5,
-  'parallax-amount': 0.7, 'parallax-depth': 20,
+  'webgpu:landmark':   { 'head-floor': 0.146, 'head-beta': 46,  'hand-floor': 0.1,   'hand-beta': 20,   'parallax-amount': 0.6, 'parallax-depth': 20 },
+  'webgpu:detector':   { 'head-floor': 0.03,  'head-beta': 5.5, 'hand-floor': 0.001, 'hand-beta': 33,   'parallax-amount': 0.6, 'parallax-depth': 20 },
+  'mediapipe:landmark':{ 'head-floor': 0.1,   'head-beta': 3.5, 'hand-floor': 0.1,   'hand-beta': 26.5, 'parallax-amount': 0.7, 'parallax-depth': 20 },
+  'mediapipe:detector': { 'head-floor': 0.04,  'head-beta': 3.9, 'hand-floor': 0.1,   'hand-beta': 32,   'parallax-amount': 0.7, 'parallax-depth': 20 },
 };
 function currentProfileKey() {
   // activeBackend / faceMode are `let`-declared later in this script and live
@@ -316,7 +317,12 @@ function getProfileValue(field) {
   if (p[field] !== undefined) return p[field];
   const flat = localStorage.getItem(field);
   if (flat !== null) return parseFloat(flat);
-  return PROFILE_DEFAULTS[field];
+  let b, f;
+  try { b = activeBackend; } catch { /* TDZ */ }
+  try { f = faceMode; } catch { /* TDZ */ }
+  const key = `${b || getSetting('backend')}:${f || getSetting('faceMode')}`;
+  const defs = PROFILE_DEFAULTS[key] || PROFILE_DEFAULTS['webgpu:landmark'];
+  return defs[field];
 }
 function setProfileValue(field, value) {
   const p = loadProfile();
@@ -1992,16 +1998,10 @@ backendSelect.addEventListener('change', async (e) => {
   syncInterpAdaptiveAvailability();
   if (newBackend === 'webgpu') {
     const ok = await initWebGPUBackend();
-    if (!ok) {
-      // WebGPU not available, revert to MediaPipe
-      activeBackend = 'mediapipe';
-      backendSelect.value = 'mediapipe';
-      setSetting('backend', 'mediapipe');
-      initMediaPipeBackend(parseInt(getSetting('numHands')));
-      video.requestVideoFrameCallback(sendMediaPipeFrames);
-    } else {
-      statusEl.textContent = 'Move your head to shift perspective. Pinch and release to fire.';
+    if (ok) {
       document.getElementById('backend-label').textContent = 'WebGPU';
+    } else {
+      console.warn('WebGPU init failed on backend switch');
     }
   } else {
     initMediaPipeBackend(parseInt(getSetting('numHands')));
@@ -2142,19 +2142,14 @@ async function loadCameraAndModels() {
   // ever stalls, the camera appears to never start. Fire-and-forget instead;
   // the tracking loops early-return on !gpuReady / !handReady so they just
   // render the empty scene until models come online.
+  // Both backends are preloaded on page load. Just start the active one's
+  // frame loop — the init is already done (or finishing in background).
   if (activeBackend === 'webgpu') {
     initWebGPUBackend().then(ok => {
       if (ok) {
         document.getElementById('backend-label').textContent = 'WebGPU';
       } else {
-        // WebGPU not available, fall back to MediaPipe and persist the change
-        console.warn('WebGPU init failed, falling back to MediaPipe');
-        activeBackend = 'mediapipe';
-        backendSelect.value = 'mediapipe';
-        setSetting('backend', 'mediapipe');
-        initMediaPipeBackend(parseInt(getSetting('numHands')));
-        video.requestVideoFrameCallback(sendMediaPipeFrames);
-        document.getElementById('backend-label').textContent = 'MediaPipe';
+        console.warn('WebGPU init failed');
       }
     }).catch(err => console.error('WebGPU init error:', err));
   } else {
@@ -2220,19 +2215,22 @@ function syncInterpAdaptiveAvailability() {
 
 document.getElementById('start-btn').addEventListener('click', startCamera);
 
-// Preload the ML models for the saved/default backend the moment the page
-// loads, while the splash screen is showing. Camera permission is the only
-// thing that requires a user gesture; model downloads and ONNX/MediaPipe
-// initialization do not. By the time the user clicks Start Camera the models
-// are likely already loaded, dramatically improving first-impression latency.
-// initWebGPUBackend / initMediaPipeBackend are idempotent, so loadCameraAndModels
-// will reuse this preloaded state instead of double-loading.
+// Preload BOTH backends on page load while the splash screen is showing.
+// Whichever backend the user has selected loads first, then the other starts.
+// By the time the user clicks Start Camera, both are likely ready, and
+// switching between them via the dropdown is instant.
 {
-  const preloadBackend = getSetting('backend');
-  if (preloadBackend === 'webgpu') {
-    initWebGPUBackend(true).catch(err => console.warn('WebGPU preload failed:', err));
-  } else if (preloadBackend === 'mediapipe') {
+  const preferred = getSetting('backend');
+  if (preferred === 'mediapipe') {
     initMediaPipeBackend(parseInt(getSetting('numHands')));
+    initWebGPUBackend(true).catch(err => console.warn('WebGPU preload failed:', err));
+  } else {
+    initWebGPUBackend(true).then(() => {
+      initMediaPipeBackend(parseInt(getSetting('numHands')));
+    }).catch(err => {
+      console.warn('WebGPU preload failed:', err);
+      initMediaPipeBackend(parseInt(getSetting('numHands')));
+    });
   }
 }
 window.addEventListener('keydown', (e) => {
