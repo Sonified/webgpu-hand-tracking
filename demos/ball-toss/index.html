@@ -353,6 +353,12 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 document.body.appendChild(renderer.domElement);
+renderer.domElement.addEventListener('webglcontextlost', (e) => {
+  console.error('[lifecycle] WebGL context LOST');
+});
+renderer.domElement.addEventListener('webglcontextrestored', () => {
+  console.log('[lifecycle] WebGL context restored');
+});
 
 // Lighting
 const ambient = new THREE.AmbientLight(0x667799, 1.2);
@@ -396,9 +402,9 @@ const cubeMat = new THREE.MeshStandardMaterial({ roughness: 0.7, metalness: 0.3 
 // Pre-compute grid positions
 function buildCubeData() {
   const positions = [];
-  for (let x = -4; x <= 4; x += 2) {
-    for (let y = -1.5; y <= 2.5; y += 2) {
-      for (let z = -15; z <= -0.5; z += 2.5) {
+  for (let x = -3.24; x <= 3.24; x += 1.62) {
+    for (let y = -1.75; y <= 0.25; y += 2) {
+      for (let z = -15; z <= 2; z += 2.5) {
         positions.push({ x, y, z, hue: (x + 4) / 8 });
       }
     }
@@ -1126,16 +1132,24 @@ function handleHandResult(landmarks) {
     if (!displayedHands[h]) {
       displayedHands[h] = filtered.map(p => ({ x: p.x, y: p.y, z: p.z }));
     }
-    const dist = Math.hypot(
-      filtered[4].x - filtered[8].x,
-      filtered[4].y - filtered[8].y,
-      filtered[4].z - filtered[8].z
-    );
-    // Pinch hysteresis: snap to true the moment dist drops below threshold,
-    // but only flip to false after openThresh consecutive open frames. This
-    // smooths over brief mis-tracks where the model loses the fingertip for
-    // a frame or two during a sustained pinch.
-    if (dist < pinchThreshold) {
+    // Palm open/closed: measure average distance from fingertips (8,12,16,20)
+    // to the palm base (landmark 0 = wrist). Closed fist = small distances,
+    // open hand = large. Much more robust than pinch (thumb-index) because the
+    // model can see the whole hand silhouette even when fingers overlap.
+    let fingertipDist = 0;
+    for (const tip of [8, 12, 16, 20]) {
+      fingertipDist += Math.hypot(
+        filtered[tip].x - wrist.x,
+        filtered[tip].y - wrist.y,
+        filtered[tip].z - wrist.z
+      );
+    }
+    fingertipDist /= 4; // average
+
+    const gripThreshold = 0.20; // below = closed fist (grab), above = open (release)
+    const closed = fingertipDist < gripThreshold;
+
+    if (closed) {
       handStates[h].pinching = true;
       handStates[h].openCount = 0;
     } else {
@@ -1195,12 +1209,16 @@ function handleGestureInput() {
     const drawHand = displayedHands[h] || hand;
 
     if (hs.pinching && drawHand) {
-      const mid = {
-        x: (drawHand[4].x + drawHand[8].x) / 2,
-        y: (drawHand[4].y + drawHand[8].y) / 2,
-        z: (drawHand[4].z + drawHand[8].z) / 2,
+      // Palm center: average of wrist (0) and middle finger base (9).
+      // Ball sits in the middle of the palm, not at the fingertips.
+      const palm = {
+        x: (drawHand[0].x + drawHand[9].x) / 2,
+        y: (drawHand[0].y + drawHand[9].y) / 2,
+        z: (drawHand[0].z + drawHand[9].z) / 2,
       };
-      const pos = landmarkToScene(mid);
+      const pos = landmarkToScene(palm);
+      pos.y += 0.5;  // up
+      pos.z -= 1.0;  // forward (toward cubes)
 
       if (!hs.heldBall) {
         const geo = new THREE.SphereGeometry(0.1, 8, 8);
@@ -1237,18 +1255,8 @@ function handleGestureInput() {
       // fingers are, not where the visually-lagged ball was. The brief
       // visual jump from the smoothed held-ball position to the raw release
       // position is invisible because the user's attention shifts to the
-      // projectile the instant it leaves the hand.
-      let origin;
-      if (hand) {
-        const rawMid = {
-          x: (hand[4].x + hand[8].x) / 2,
-          y: (hand[4].y + hand[8].y) / 2,
-          z: (hand[4].z + hand[8].z) / 2,
-        };
-        origin = landmarkToScene(rawMid);
-      } else {
-        origin = hs.heldBall.mesh.position.clone();
-      }
+      // Launch from the ball's current position — same place it was held.
+      const origin = hs.heldBall.mesh.position.clone();
       const vx = hs.heldBall.svx * 0.5;
       const vy = hs.heldBall.svy * 0.5;
       scene.remove(hs.heldBall.mesh);
@@ -1884,6 +1892,14 @@ function animate(timestamp) {
     lastFpsTime = now;
   }
   if (activeBackend === 'webgpu') _bench.report(now);
+
+  // Periodic heartbeat: proves animate() is still running and shows key state.
+  if (!animate._lastHeartbeat || now - animate._lastHeartbeat > 3000) {
+    animate._lastHeartbeat = now;
+    const hd = now - headLastSeen <= 500;
+    const nh = currentHands.filter(h => h).length;
+    console.log(`[heartbeat] animate alive | head=${hd ? 'YES' : 'NO'} (lastSeen=${Math.round(now - headLastSeen)}ms ago) hands=${nh} camX=${camera.position.x.toFixed(2)} fps=${document.getElementById('fps').textContent}`);
+  }
 
   // HUD -- throttle to 10fps and use last-seen timeouts to smooth async ML gaps
   if (!animate._lastHud || now - animate._lastHud > 100) {
