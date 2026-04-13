@@ -1,0 +1,3919 @@
+{
+  "model": "palm_detection_lite",
+  "input": {
+    "name": "input_1",
+    "shape": [
+      1,
+      192,
+      192,
+      3
+    ]
+  },
+  "outputs": [
+    {
+      "name": "Identity",
+      "shape": [
+        1,
+        2016,
+        18
+      ]
+    },
+    {
+      "name": "Identity_1",
+      "shape": [
+        1,
+        2016,
+        1
+      ]
+    }
+  ],
+  "weight_buffer": {
+    "total_floats": 960126,
+    "total_bytes": 3840504
+  },
+  "weights": {
+    "pad_const__89": {
+      "shape": [
+        8
+      ],
+      "offset": 0,
+      "length": 8,
+      "byte_offset": 0,
+      "byte_size": 32
+    },
+    "pad_const__159": {
+      "shape": [
+        8
+      ],
+      "offset": 8,
+      "length": 8,
+      "byte_offset": 32,
+      "byte_size": 32
+    },
+    "pad_const__124": {
+      "shape": [
+        8
+      ],
+      "offset": 16,
+      "length": 8,
+      "byte_offset": 64,
+      "byte_size": 32
+    },
+    "const_fold_opt__842": {
+      "shape": [
+        256,
+        1,
+        5,
+        5
+      ],
+      "offset": 24,
+      "length": 6400,
+      "byte_offset": 96,
+      "byte_size": 25600
+    },
+    "const_fold_opt__840": {
+      "shape": [
+        1,
+        128,
+        1,
+        1
+      ],
+      "offset": 6424,
+      "length": 128,
+      "byte_offset": 25696,
+      "byte_size": 512
+    },
+    "const_fold_opt__839": {
+      "shape": [
+        256,
+        1,
+        5,
+        5
+      ],
+      "offset": 6552,
+      "length": 6400,
+      "byte_offset": 26208,
+      "byte_size": 25600
+    },
+    "const_fold_opt__838": {
+      "shape": [
+        1,
+        128,
+        1,
+        1
+      ],
+      "offset": 12952,
+      "length": 128,
+      "byte_offset": 51808,
+      "byte_size": 512
+    },
+    "const_fold_opt__837": {
+      "shape": [
+        1,
+        32,
+        1,
+        1
+      ],
+      "offset": 13080,
+      "length": 32,
+      "byte_offset": 52320,
+      "byte_size": 128
+    },
+    "const_fold_opt__836": {
+      "shape": [
+        1,
+        256,
+        1,
+        1
+      ],
+      "offset": 13112,
+      "length": 256,
+      "byte_offset": 52448,
+      "byte_size": 1024
+    },
+    "const_fold_opt__835": {
+      "shape": [
+        2,
+        128,
+        1,
+        1
+      ],
+      "offset": 13368,
+      "length": 256,
+      "byte_offset": 53472,
+      "byte_size": 1024
+    },
+    "const_fold_opt__834": {
+      "shape": [
+        128,
+        1,
+        5,
+        5
+      ],
+      "offset": 13624,
+      "length": 3200,
+      "byte_offset": 54496,
+      "byte_size": 12800
+    },
+    "const_fold_opt__831": {
+      "shape": [
+        128,
+        1,
+        5,
+        5
+      ],
+      "offset": 16824,
+      "length": 3200,
+      "byte_offset": 67296,
+      "byte_size": 12800
+    },
+    "const_fold_opt__829": {
+      "shape": [
+        128,
+        1,
+        5,
+        5
+      ],
+      "offset": 20024,
+      "length": 3200,
+      "byte_offset": 80096,
+      "byte_size": 12800
+    },
+    "const_fold_opt__827": {
+      "shape": [
+        32,
+        1,
+        5,
+        5
+      ],
+      "offset": 23224,
+      "length": 800,
+      "byte_offset": 92896,
+      "byte_size": 3200
+    },
+    "const_fold_opt__826": {
+      "shape": [
+        1,
+        128,
+        1,
+        1
+      ],
+      "offset": 24024,
+      "length": 128,
+      "byte_offset": 96096,
+      "byte_size": 512
+    },
+    "const_fold_opt__825": {
+      "shape": [
+        1,
+        256,
+        1,
+        1
+      ],
+      "offset": 24152,
+      "length": 256,
+      "byte_offset": 96608,
+      "byte_size": 1024
+    },
+    "const_fold_opt__824": {
+      "shape": [
+        1,
+        128,
+        1,
+        1
+      ],
+      "offset": 24408,
+      "length": 128,
+      "byte_offset": 97632,
+      "byte_size": 512
+    },
+    "const_fold_opt__822": {
+      "shape": [
+        1,
+        256,
+        1,
+        1
+      ],
+      "offset": 24536,
+      "length": 256,
+      "byte_offset": 98144,
+      "byte_size": 1024
+    },
+    "const_fold_opt__820": {
+      "shape": [
+        256,
+        256,
+        1,
+        1
+      ],
+      "offset": 24792,
+      "length": 65536,
+      "byte_offset": 99168,
+      "byte_size": 262144
+    },
+    "const_fold_opt__819": {
+      "shape": [
+        1,
+        256,
+        1,
+        1
+      ],
+      "offset": 90328,
+      "length": 256,
+      "byte_offset": 361312,
+      "byte_size": 1024
+    },
+    "const_fold_opt__817": {
+      "shape": [
+        256,
+        256,
+        1,
+        1
+      ],
+      "offset": 90584,
+      "length": 65536,
+      "byte_offset": 362336,
+      "byte_size": 262144
+    },
+    "const_fold_opt__815": {
+      "shape": [
+        1,
+        64,
+        1,
+        1
+      ],
+      "offset": 156120,
+      "length": 64,
+      "byte_offset": 624480,
+      "byte_size": 256
+    },
+    "const_fold_opt__812": {
+      "shape": [
+        256,
+        1,
+        5,
+        5
+      ],
+      "offset": 156184,
+      "length": 6400,
+      "byte_offset": 624736,
+      "byte_size": 25600
+    },
+    "const_fold_opt__810": {
+      "shape": [
+        1,
+        256,
+        1,
+        1
+      ],
+      "offset": 162584,
+      "length": 256,
+      "byte_offset": 650336,
+      "byte_size": 1024
+    },
+    "const_fold_opt__809": {
+      "shape": [
+        256,
+        256,
+        1,
+        1
+      ],
+      "offset": 162840,
+      "length": 65536,
+      "byte_offset": 651360,
+      "byte_size": 262144
+    },
+    "const_fold_opt__807": {
+      "shape": [
+        1,
+        128,
+        1,
+        1
+      ],
+      "offset": 228376,
+      "length": 128,
+      "byte_offset": 913504,
+      "byte_size": 512
+    },
+    "const_fold_opt__804": {
+      "shape": [
+        64,
+        1,
+        5,
+        5
+      ],
+      "offset": 228504,
+      "length": 1600,
+      "byte_offset": 914016,
+      "byte_size": 6400
+    },
+    "const_fold_opt__803": {
+      "shape": [
+        64,
+        1,
+        5,
+        5
+      ],
+      "offset": 230104,
+      "length": 1600,
+      "byte_offset": 920416,
+      "byte_size": 6400
+    },
+    "const_fold_opt__801": {
+      "shape": [
+        128,
+        1,
+        5,
+        5
+      ],
+      "offset": 231704,
+      "length": 3200,
+      "byte_offset": 926816,
+      "byte_size": 12800
+    },
+    "const_fold_opt__799": {
+      "shape": [
+        128,
+        1,
+        5,
+        5
+      ],
+      "offset": 234904,
+      "length": 3200,
+      "byte_offset": 939616,
+      "byte_size": 12800
+    },
+    "const_fold_opt__793": {
+      "shape": [
+        32,
+        32,
+        1,
+        1
+      ],
+      "offset": 238104,
+      "length": 1024,
+      "byte_offset": 952416,
+      "byte_size": 4096
+    },
+    "const_fold_opt__789": {
+      "shape": [
+        64,
+        32,
+        1,
+        1
+      ],
+      "offset": 239128,
+      "length": 2048,
+      "byte_offset": 956512,
+      "byte_size": 8192
+    },
+    "const_fold_opt__787": {
+      "shape": [
+        1,
+        256,
+        1,
+        1
+      ],
+      "offset": 241176,
+      "length": 256,
+      "byte_offset": 964704,
+      "byte_size": 1024
+    },
+    "const_fold_opt__784": {
+      "shape": [
+        1,
+        256,
+        1,
+        1
+      ],
+      "offset": 241432,
+      "length": 256,
+      "byte_offset": 965728,
+      "byte_size": 1024
+    },
+    "const_fold_opt__782": {
+      "shape": [
+        64,
+        64,
+        1,
+        1
+      ],
+      "offset": 241688,
+      "length": 4096,
+      "byte_offset": 966752,
+      "byte_size": 16384
+    },
+    "const_fold_opt__778": {
+      "shape": [
+        1,
+        256,
+        1,
+        1
+      ],
+      "offset": 245784,
+      "length": 256,
+      "byte_offset": 983136,
+      "byte_size": 1024
+    },
+    "const_fold_opt__775": {
+      "shape": [
+        256,
+        256,
+        1,
+        1
+      ],
+      "offset": 246040,
+      "length": 65536,
+      "byte_offset": 984160,
+      "byte_size": 262144
+    },
+    "const_fold_opt__774": {
+      "shape": [
+        1,
+        32,
+        1,
+        1
+      ],
+      "offset": 311576,
+      "length": 32,
+      "byte_offset": 1246304,
+      "byte_size": 128
+    },
+    "const_fold_opt__773": {
+      "shape": [
+        128,
+        64,
+        1,
+        1
+      ],
+      "offset": 311608,
+      "length": 8192,
+      "byte_offset": 1246432,
+      "byte_size": 32768
+    },
+    "const_fold_opt__772": {
+      "shape": [
+        32,
+        32,
+        1,
+        1
+      ],
+      "offset": 319800,
+      "length": 1024,
+      "byte_offset": 1279200,
+      "byte_size": 4096
+    },
+    "const_fold_opt__769": {
+      "shape": [
+        128
+      ],
+      "offset": 320824,
+      "length": 128,
+      "byte_offset": 1283296,
+      "byte_size": 512
+    },
+    "const_fold_opt__767": {
+      "shape": [
+        32,
+        1,
+        5,
+        5
+      ],
+      "offset": 320952,
+      "length": 800,
+      "byte_offset": 1283808,
+      "byte_size": 3200
+    },
+    "const_fold_opt__766": {
+      "shape": [
+        256,
+        1,
+        5,
+        5
+      ],
+      "offset": 321752,
+      "length": 6400,
+      "byte_offset": 1287008,
+      "byte_size": 25600
+    },
+    "const_fold_opt__765": {
+      "shape": [
+        256,
+        256,
+        1,
+        1
+      ],
+      "offset": 328152,
+      "length": 65536,
+      "byte_offset": 1312608,
+      "byte_size": 262144
+    },
+    "const_fold_opt__761": {
+      "shape": [
+        32,
+        1,
+        5,
+        5
+      ],
+      "offset": 393688,
+      "length": 800,
+      "byte_offset": 1574752,
+      "byte_size": 3200
+    },
+    "const_fold_opt__758": {
+      "shape": [
+        1,
+        256,
+        1,
+        1
+      ],
+      "offset": 394488,
+      "length": 256,
+      "byte_offset": 1577952,
+      "byte_size": 1024
+    },
+    "const_fold_opt__757": {
+      "shape": [
+        256,
+        1,
+        5,
+        5
+      ],
+      "offset": 394744,
+      "length": 6400,
+      "byte_offset": 1578976,
+      "byte_size": 25600
+    },
+    "const_fold_opt__754": {
+      "shape": [
+        128
+      ],
+      "offset": 401144,
+      "length": 128,
+      "byte_offset": 1604576,
+      "byte_size": 512
+    },
+    "const_fold_opt__753": {
+      "shape": [
+        256,
+        1,
+        5,
+        5
+      ],
+      "offset": 401272,
+      "length": 6400,
+      "byte_offset": 1605088,
+      "byte_size": 25600
+    },
+    "const_fold_opt__751": {
+      "shape": [
+        108
+      ],
+      "offset": 407672,
+      "length": 108,
+      "byte_offset": 1630688,
+      "byte_size": 432
+    },
+    "const_fold_opt__749": {
+      "shape": [
+        32
+      ],
+      "offset": 407780,
+      "length": 32,
+      "byte_offset": 1631120,
+      "byte_size": 128
+    },
+    "const_fold_opt__748": {
+      "shape": [
+        128,
+        128,
+        1,
+        1
+      ],
+      "offset": 407812,
+      "length": 16384,
+      "byte_offset": 1631248,
+      "byte_size": 65536
+    },
+    "const_fold_opt__743": {
+      "shape": [
+        1,
+        32,
+        1,
+        1
+      ],
+      "offset": 424196,
+      "length": 32,
+      "byte_offset": 1696784,
+      "byte_size": 128
+    },
+    "const_fold_opt__739": {
+      "shape": [
+        128,
+        256,
+        1,
+        1
+      ],
+      "offset": 424228,
+      "length": 32768,
+      "byte_offset": 1696912,
+      "byte_size": 131072
+    },
+    "const_fold_opt__734": {
+      "shape": [
+        1,
+        256,
+        1,
+        1
+      ],
+      "offset": 456996,
+      "length": 256,
+      "byte_offset": 1827984,
+      "byte_size": 1024
+    },
+    "const_fold_opt__733": {
+      "shape": [
+        2
+      ],
+      "offset": 457252,
+      "length": 2,
+      "byte_offset": 1829008,
+      "byte_size": 8
+    },
+    "const_fold_opt__730": {
+      "shape": [
+        64,
+        1,
+        5,
+        5
+      ],
+      "offset": 457254,
+      "length": 1600,
+      "byte_offset": 1829016,
+      "byte_size": 6400
+    },
+    "const_fold_opt__728": {
+      "shape": [
+        1,
+        128,
+        1,
+        1
+      ],
+      "offset": 458854,
+      "length": 128,
+      "byte_offset": 1835416,
+      "byte_size": 512
+    },
+    "const_fold_opt__726": {
+      "shape": [
+        64,
+        1,
+        5,
+        5
+      ],
+      "offset": 458982,
+      "length": 1600,
+      "byte_offset": 1835928,
+      "byte_size": 6400
+    },
+    "const_fold_opt__724": {
+      "shape": [
+        3
+      ],
+      "offset": 460582,
+      "length": 3,
+      "byte_offset": 1842328,
+      "byte_size": 12
+    },
+    "const_fold_opt__723": {
+      "shape": [
+        128,
+        1,
+        5,
+        5
+      ],
+      "offset": 460585,
+      "length": 3200,
+      "byte_offset": 1842340,
+      "byte_size": 12800
+    },
+    "const_fold_opt__720": {
+      "shape": [
+        1,
+        128,
+        1,
+        1
+      ],
+      "offset": 463785,
+      "length": 128,
+      "byte_offset": 1855140,
+      "byte_size": 512
+    },
+    "const_fold_opt__719": {
+      "shape": [
+        128,
+        128,
+        1,
+        1
+      ],
+      "offset": 463913,
+      "length": 16384,
+      "byte_offset": 1855652,
+      "byte_size": 65536
+    },
+    "const_fold_opt__716": {
+      "shape": [
+        32
+      ],
+      "offset": 480297,
+      "length": 32,
+      "byte_offset": 1921188,
+      "byte_size": 128
+    },
+    "const_fold_opt__713": {
+      "shape": [
+        128,
+        128,
+        1,
+        1
+      ],
+      "offset": 480329,
+      "length": 16384,
+      "byte_offset": 1921316,
+      "byte_size": 65536
+    },
+    "const_fold_opt__708": {
+      "shape": [
+        128,
+        128,
+        1,
+        1
+      ],
+      "offset": 496713,
+      "length": 16384,
+      "byte_offset": 1986852,
+      "byte_size": 65536
+    },
+    "const_fold_opt__705": {
+      "shape": [
+        64
+      ],
+      "offset": 513097,
+      "length": 64,
+      "byte_offset": 2052388,
+      "byte_size": 256
+    },
+    "const_fold_opt__700": {
+      "shape": [
+        256,
+        128,
+        1,
+        1
+      ],
+      "offset": 513161,
+      "length": 32768,
+      "byte_offset": 2052644,
+      "byte_size": 131072
+    },
+    "const_fold_opt__699": {
+      "shape": [
+        1,
+        64,
+        1,
+        1
+      ],
+      "offset": 545929,
+      "length": 64,
+      "byte_offset": 2183716,
+      "byte_size": 256
+    },
+    "const_fold_opt__697": {
+      "shape": [
+        64,
+        64,
+        1,
+        1
+      ],
+      "offset": 545993,
+      "length": 4096,
+      "byte_offset": 2183972,
+      "byte_size": 16384
+    },
+    "const_fold_opt__692": {
+      "shape": [
+        32,
+        32,
+        1,
+        1
+      ],
+      "offset": 550089,
+      "length": 1024,
+      "byte_offset": 2200356,
+      "byte_size": 4096
+    },
+    "const_fold_opt__690": {
+      "shape": [
+        64
+      ],
+      "offset": 551113,
+      "length": 64,
+      "byte_offset": 2204452,
+      "byte_size": 256
+    },
+    "const_fold_opt__687": {
+      "shape": [
+        64
+      ],
+      "offset": 551177,
+      "length": 64,
+      "byte_offset": 2204708,
+      "byte_size": 256
+    },
+    "const_fold_opt__686": {
+      "shape": [
+        256
+      ],
+      "offset": 551241,
+      "length": 256,
+      "byte_offset": 2204964,
+      "byte_size": 1024
+    },
+    "const_fold_opt__683": {
+      "shape": [
+        32
+      ],
+      "offset": 551497,
+      "length": 32,
+      "byte_offset": 2205988,
+      "byte_size": 128
+    },
+    "const_fold_opt__682": {
+      "shape": [
+        256,
+        256,
+        1,
+        1
+      ],
+      "offset": 551529,
+      "length": 65536,
+      "byte_offset": 2206116,
+      "byte_size": 262144
+    },
+    "const_fold_opt__681": {
+      "shape": [
+        64
+      ],
+      "offset": 617065,
+      "length": 64,
+      "byte_offset": 2468260,
+      "byte_size": 256
+    },
+    "const_fold_opt__678": {
+      "shape": [
+        32,
+        3,
+        5,
+        5
+      ],
+      "offset": 617129,
+      "length": 2400,
+      "byte_offset": 2468516,
+      "byte_size": 9600
+    },
+    "const_fold_opt__677": {
+      "shape": [
+        256
+      ],
+      "offset": 619529,
+      "length": 256,
+      "byte_offset": 2478116,
+      "byte_size": 1024
+    },
+    "const_fold_opt__676": {
+      "shape": [
+        64,
+        64,
+        1,
+        1
+      ],
+      "offset": 619785,
+      "length": 4096,
+      "byte_offset": 2479140,
+      "byte_size": 16384
+    },
+    "const_fold_opt__672": {
+      "shape": [
+        128
+      ],
+      "offset": 623881,
+      "length": 128,
+      "byte_offset": 2495524,
+      "byte_size": 512
+    },
+    "const_fold_opt__671": {
+      "shape": [
+        32
+      ],
+      "offset": 624009,
+      "length": 32,
+      "byte_offset": 2496036,
+      "byte_size": 128
+    },
+    "const_fold_opt__667": {
+      "shape": [
+        256
+      ],
+      "offset": 624041,
+      "length": 256,
+      "byte_offset": 2496164,
+      "byte_size": 1024
+    },
+    "const_fold_opt__663": {
+      "shape": [
+        1,
+        64,
+        1,
+        1
+      ],
+      "offset": 624297,
+      "length": 64,
+      "byte_offset": 2497188,
+      "byte_size": 256
+    },
+    "const_fold_opt__662": {
+      "shape": [
+        256,
+        256,
+        1,
+        1
+      ],
+      "offset": 624361,
+      "length": 65536,
+      "byte_offset": 2497444,
+      "byte_size": 262144
+    },
+    "const_fold_opt__661": {
+      "shape": [
+        1,
+        64,
+        1,
+        1
+      ],
+      "offset": 689897,
+      "length": 64,
+      "byte_offset": 2759588,
+      "byte_size": 256
+    },
+    "const_fold_opt__658": {
+      "shape": [
+        1,
+        32,
+        1,
+        1
+      ],
+      "offset": 689961,
+      "length": 32,
+      "byte_offset": 2759844,
+      "byte_size": 128
+    },
+    "const_fold_opt__657": {
+      "shape": [
+        256
+      ],
+      "offset": 689993,
+      "length": 256,
+      "byte_offset": 2759972,
+      "byte_size": 1024
+    },
+    "const_fold_opt__656": {
+      "shape": [
+        256,
+        1,
+        5,
+        5
+      ],
+      "offset": 690249,
+      "length": 6400,
+      "byte_offset": 2760996,
+      "byte_size": 25600
+    },
+    "const_fold_opt__655": {
+      "shape": [
+        1,
+        256,
+        1,
+        1
+      ],
+      "offset": 696649,
+      "length": 256,
+      "byte_offset": 2786596,
+      "byte_size": 1024
+    },
+    "const_fold_opt__653": {
+      "shape": [
+        128
+      ],
+      "offset": 696905,
+      "length": 128,
+      "byte_offset": 2787620,
+      "byte_size": 512
+    },
+    "const_fold_opt__651": {
+      "shape": [
+        256
+      ],
+      "offset": 697033,
+      "length": 256,
+      "byte_offset": 2788132,
+      "byte_size": 1024
+    },
+    "const_fold_opt__649": {
+      "shape": [
+        256
+      ],
+      "offset": 697289,
+      "length": 256,
+      "byte_offset": 2789156,
+      "byte_size": 1024
+    },
+    "const_fold_opt__648": {
+      "shape": [
+        256,
+        1,
+        5,
+        5
+      ],
+      "offset": 697545,
+      "length": 6400,
+      "byte_offset": 2790180,
+      "byte_size": 25600
+    },
+    "const_fold_opt__646": {
+      "shape": [
+        32,
+        1,
+        5,
+        5
+      ],
+      "offset": 703945,
+      "length": 800,
+      "byte_offset": 2815780,
+      "byte_size": 3200
+    },
+    "const_fold_opt__644": {
+      "shape": [
+        256,
+        256,
+        1,
+        1
+      ],
+      "offset": 704745,
+      "length": 65536,
+      "byte_offset": 2818980,
+      "byte_size": 262144
+    },
+    "const_fold_opt__640": {
+      "shape": [
+        256
+      ],
+      "offset": 770281,
+      "length": 256,
+      "byte_offset": 3081124,
+      "byte_size": 1024
+    },
+    "const_fold_opt__638": {
+      "shape": [
+        256,
+        1,
+        5,
+        5
+      ],
+      "offset": 770537,
+      "length": 6400,
+      "byte_offset": 3082148,
+      "byte_size": 25600
+    },
+    "const_fold_opt__636": {
+      "shape": [
+        256,
+        256,
+        1,
+        1
+      ],
+      "offset": 776937,
+      "length": 65536,
+      "byte_offset": 3107748,
+      "byte_size": 262144
+    },
+    "const_fold_opt__631": {
+      "shape": [
+        108,
+        256,
+        1,
+        1
+      ],
+      "offset": 842473,
+      "length": 27648,
+      "byte_offset": 3369892,
+      "byte_size": 110592
+    },
+    "const_fold_opt__627": {
+      "shape": [
+        6
+      ],
+      "offset": 870121,
+      "length": 6,
+      "byte_offset": 3480484,
+      "byte_size": 24
+    },
+    "const_fold_opt__625": {
+      "shape": [
+        6,
+        256,
+        1,
+        1
+      ],
+      "offset": 870127,
+      "length": 1536,
+      "byte_offset": 3480508,
+      "byte_size": 6144
+    },
+    "const_fold_opt__622": {
+      "shape": [
+        256
+      ],
+      "offset": 871663,
+      "length": 256,
+      "byte_offset": 3486652,
+      "byte_size": 1024
+    },
+    "const_fold_opt__621": {
+      "shape": [
+        256
+      ],
+      "offset": 871919,
+      "length": 256,
+      "byte_offset": 3487676,
+      "byte_size": 1024
+    },
+    "const_fold_opt__616": {
+      "shape": [
+        128
+      ],
+      "offset": 872175,
+      "length": 128,
+      "byte_offset": 3488700,
+      "byte_size": 512
+    },
+    "const_fold_opt__597": {
+      "shape": [
+        36
+      ],
+      "offset": 872303,
+      "length": 36,
+      "byte_offset": 3489212,
+      "byte_size": 144
+    },
+    "const_fold_opt__595": {
+      "shape": [
+        36,
+        128,
+        1,
+        1
+      ],
+      "offset": 872339,
+      "length": 4608,
+      "byte_offset": 3489356,
+      "byte_size": 18432
+    },
+    "const_fold_opt__588": {
+      "shape": [
+        3
+      ],
+      "offset": 876947,
+      "length": 3,
+      "byte_offset": 3507788,
+      "byte_size": 12
+    },
+    "const_fold_opt__587": {
+      "shape": [
+        128
+      ],
+      "offset": 876950,
+      "length": 128,
+      "byte_offset": 3507800,
+      "byte_size": 512
+    },
+    "const_fold_opt__583": {
+      "shape": [
+        128,
+        128,
+        1,
+        1
+      ],
+      "offset": 877078,
+      "length": 16384,
+      "byte_offset": 3508312,
+      "byte_size": 65536
+    },
+    "const_fold_opt__581": {
+      "shape": [
+        128
+      ],
+      "offset": 893462,
+      "length": 128,
+      "byte_offset": 3573848,
+      "byte_size": 512
+    },
+    "const_fold_opt__575": {
+      "shape": [
+        128
+      ],
+      "offset": 893590,
+      "length": 128,
+      "byte_offset": 3574360,
+      "byte_size": 512
+    },
+    "const_fold_opt__572": {
+      "shape": [
+        256,
+        256,
+        1,
+        1
+      ],
+      "offset": 893718,
+      "length": 65536,
+      "byte_offset": 3574872,
+      "byte_size": 262144
+    },
+    "const_fold_opt__570": {
+      "shape": [
+        32
+      ],
+      "offset": 959254,
+      "length": 32,
+      "byte_offset": 3837016,
+      "byte_size": 128
+    },
+    "const_fold_opt__561": {
+      "shape": [
+        256
+      ],
+      "offset": 959286,
+      "length": 256,
+      "byte_offset": 3837144,
+      "byte_size": 1024
+    },
+    "const_fold_opt__551": {
+      "shape": [
+        64
+      ],
+      "offset": 959542,
+      "length": 64,
+      "byte_offset": 3838168,
+      "byte_size": 256
+    },
+    "const_fold_opt__548": {
+      "shape": [
+        256
+      ],
+      "offset": 959606,
+      "length": 256,
+      "byte_offset": 3838424,
+      "byte_size": 1024
+    },
+    "const_fold_opt__546": {
+      "shape": [
+        256
+      ],
+      "offset": 959862,
+      "length": 256,
+      "byte_offset": 3839448,
+      "byte_size": 1024
+    },
+    "const_empty_float__258": {
+      "shape": [
+        0
+      ],
+      "offset": 960118,
+      "length": 0,
+      "byte_offset": 3840472,
+      "byte_size": 0
+    },
+    "Concat__234:0": {
+      "shape": [
+        4
+      ],
+      "offset": 960118,
+      "length": 4,
+      "byte_offset": 3840472,
+      "byte_size": 16
+    },
+    "Concat__263:0": {
+      "shape": [
+        4
+      ],
+      "offset": 960122,
+      "length": 4,
+      "byte_offset": 3840488,
+      "byte_size": 16
+    }
+  },
+  "graph": [
+    {
+      "op": "Transpose",
+      "name": "model_1/model/batch_normalization/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d/Conv2D1__60",
+      "inputs": [
+        "input_1"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d/Conv2D1__60:0"
+      ],
+      "attrs": {
+        "perm": [
+          0,
+          3,
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d/Conv2D1",
+      "inputs": [
+        "model_1/model/batch_normalization/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d/Conv2D1__60:0",
+        "const_fold_opt__678",
+        "const_fold_opt__683"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          2,
+          2
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "pads": [
+          1,
+          1,
+          2,
+          2
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu/add;model_1/model/p_re_lu/Relu;model_1/model/p_re_lu/Neg_1;model_1/model/p_re_lu/Relu_1;model_1/model/p_re_lu/mul1",
+      "inputs": [
+        "model_1/model/batch_normalization/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d/Conv2D1",
+        "const_fold_opt__743"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu/add;model_1/model/p_re_lu/Relu;model_1/model/p_re_lu/Neg_1;model_1/model/p_re_lu/Relu_1;model_1/model/p_re_lu/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu/add;model_1/model/p_re_lu/Relu;model_1/model/p_re_lu/Neg_1;model_1/model/p_re_lu/Relu_1;model_1/model/p_re_lu/mul1",
+        "const_fold_opt__767",
+        "const_fold_opt__716"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 32,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_1/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d_1/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d/depthwise1",
+        "const_fold_opt__772",
+        "const_fold_opt__671"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_1/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d_1/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add/add",
+      "inputs": [
+        "model_1/model/p_re_lu/add;model_1/model/p_re_lu/Relu;model_1/model/p_re_lu/Neg_1;model_1/model/p_re_lu/Relu_1;model_1/model/p_re_lu/mul1",
+        "model_1/model/batch_normalization_1/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d_1/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_1/add;model_1/model/p_re_lu_1/Relu;model_1/model/p_re_lu_1/Neg_1;model_1/model/p_re_lu_1/Relu_1;model_1/model/p_re_lu_1/mul1",
+      "inputs": [
+        "model_1/model/add/add",
+        "const_fold_opt__658"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_1/add;model_1/model/p_re_lu_1/Relu;model_1/model/p_re_lu_1/Neg_1;model_1/model/p_re_lu_1/Relu_1;model_1/model/p_re_lu_1/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_1/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu_1/add;model_1/model/p_re_lu_1/Relu;model_1/model/p_re_lu_1/Neg_1;model_1/model/p_re_lu_1/Relu_1;model_1/model/p_re_lu_1/mul1",
+        "const_fold_opt__761",
+        "const_fold_opt__716"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_1/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 32,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_2/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d_2/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_1/depthwise1",
+        "const_fold_opt__692",
+        "const_fold_opt__749"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_2/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d_2/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_1/add",
+      "inputs": [
+        "model_1/model/p_re_lu_1/add;model_1/model/p_re_lu_1/Relu;model_1/model/p_re_lu_1/Neg_1;model_1/model/p_re_lu_1/Relu_1;model_1/model/p_re_lu_1/mul1",
+        "model_1/model/batch_normalization_2/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d_2/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_1/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_2/add;model_1/model/p_re_lu_2/Relu;model_1/model/p_re_lu_2/Neg_1;model_1/model/p_re_lu_2/Relu_1;model_1/model/p_re_lu_2/mul1",
+      "inputs": [
+        "model_1/model/add_1/add",
+        "const_fold_opt__837"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_2/add;model_1/model/p_re_lu_2/Relu;model_1/model/p_re_lu_2/Neg_1;model_1/model/p_re_lu_2/Relu_1;model_1/model/p_re_lu_2/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_2/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu_2/add;model_1/model/p_re_lu_2/Relu;model_1/model/p_re_lu_2/Neg_1;model_1/model/p_re_lu_2/Relu_1;model_1/model/p_re_lu_2/mul1",
+        "const_fold_opt__646",
+        "const_fold_opt__716"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_2/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 32,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_3/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d_3/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_2/depthwise1",
+        "const_fold_opt__793",
+        "const_fold_opt__570"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_3/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d_3/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_2/add",
+      "inputs": [
+        "model_1/model/p_re_lu_2/add;model_1/model/p_re_lu_2/Relu;model_1/model/p_re_lu_2/Neg_1;model_1/model/p_re_lu_2/Relu_1;model_1/model/p_re_lu_2/mul1",
+        "model_1/model/batch_normalization_3/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d_3/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_2/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_3/add;model_1/model/p_re_lu_3/Relu;model_1/model/p_re_lu_3/Neg_1;model_1/model/p_re_lu_3/Relu_1;model_1/model/p_re_lu_3/mul1",
+      "inputs": [
+        "model_1/model/add_2/add",
+        "const_fold_opt__774"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_3/add;model_1/model/p_re_lu_3/Relu;model_1/model/p_re_lu_3/Neg_1;model_1/model/p_re_lu_3/Relu_1;model_1/model/p_re_lu_3/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "MaxPool",
+      "name": "model_1/model/max_pooling2d/MaxPool",
+      "inputs": [
+        "model_1/model/p_re_lu_3/add;model_1/model/p_re_lu_3/Relu;model_1/model/p_re_lu_3/Neg_1;model_1/model/p_re_lu_3/Relu_1;model_1/model/p_re_lu_3/mul1"
+      ],
+      "outputs": [
+        "model_1/model/max_pooling2d/MaxPool"
+      ],
+      "attrs": {
+        "strides": [
+          2,
+          2
+        ],
+        "kernel_shape": [
+          2,
+          2
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "op": "Pad",
+      "name": "model_1/model/channel_padding/Pad",
+      "inputs": [
+        "model_1/model/max_pooling2d/MaxPool",
+        "pad_const__89"
+      ],
+      "outputs": [
+        "model_1/model/channel_padding/Pad"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_3/depthwise2",
+      "inputs": [
+        "model_1/model/p_re_lu_3/add;model_1/model/p_re_lu_3/Relu;model_1/model/p_re_lu_3/Neg_1;model_1/model/p_re_lu_3/Relu_1;model_1/model/p_re_lu_3/mul1",
+        "const_fold_opt__827",
+        "const_fold_opt__716"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_3/depthwise2"
+      ],
+      "attrs": {
+        "strides": [
+          2,
+          2
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 32,
+        "pads": [
+          1,
+          1,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_4/FusedBatchNormV3;model_1/model/depthwise_conv2d_7/depthwise;model_1/model/conv2d_4/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_3/depthwise2",
+        "const_fold_opt__789",
+        "const_fold_opt__705"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_4/FusedBatchNormV3;model_1/model/depthwise_conv2d_7/depthwise;model_1/model/conv2d_4/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_3/add",
+      "inputs": [
+        "model_1/model/channel_padding/Pad",
+        "model_1/model/batch_normalization_4/FusedBatchNormV3;model_1/model/depthwise_conv2d_7/depthwise;model_1/model/conv2d_4/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_3/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_4/add;model_1/model/p_re_lu_4/Relu;model_1/model/p_re_lu_4/Neg_1;model_1/model/p_re_lu_4/Relu_1;model_1/model/p_re_lu_4/mul1",
+      "inputs": [
+        "model_1/model/add_3/add",
+        "const_fold_opt__663"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_4/add;model_1/model/p_re_lu_4/Relu;model_1/model/p_re_lu_4/Neg_1;model_1/model/p_re_lu_4/Relu_1;model_1/model/p_re_lu_4/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_4/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu_4/add;model_1/model/p_re_lu_4/Relu;model_1/model/p_re_lu_4/Neg_1;model_1/model/p_re_lu_4/Relu_1;model_1/model/p_re_lu_4/mul1",
+        "const_fold_opt__730",
+        "const_fold_opt__687"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_4/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 64,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_5/FusedBatchNormV3;model_1/model/depthwise_conv2d_7/depthwise;model_1/model/conv2d_5/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_4/depthwise1",
+        "const_fold_opt__697",
+        "const_fold_opt__551"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_5/FusedBatchNormV3;model_1/model/depthwise_conv2d_7/depthwise;model_1/model/conv2d_5/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_4/add",
+      "inputs": [
+        "model_1/model/p_re_lu_4/add;model_1/model/p_re_lu_4/Relu;model_1/model/p_re_lu_4/Neg_1;model_1/model/p_re_lu_4/Relu_1;model_1/model/p_re_lu_4/mul1",
+        "model_1/model/batch_normalization_5/FusedBatchNormV3;model_1/model/depthwise_conv2d_7/depthwise;model_1/model/conv2d_5/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_4/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_5/add;model_1/model/p_re_lu_5/Relu;model_1/model/p_re_lu_5/Neg_1;model_1/model/p_re_lu_5/Relu_1;model_1/model/p_re_lu_5/mul1",
+      "inputs": [
+        "model_1/model/add_4/add",
+        "const_fold_opt__661"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_5/add;model_1/model/p_re_lu_5/Relu;model_1/model/p_re_lu_5/Neg_1;model_1/model/p_re_lu_5/Relu_1;model_1/model/p_re_lu_5/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_5/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu_5/add;model_1/model/p_re_lu_5/Relu;model_1/model/p_re_lu_5/Neg_1;model_1/model/p_re_lu_5/Relu_1;model_1/model/p_re_lu_5/mul1",
+        "const_fold_opt__804",
+        "const_fold_opt__687"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_5/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 64,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_6/FusedBatchNormV3;model_1/model/depthwise_conv2d_7/depthwise;model_1/model/conv2d_6/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_5/depthwise1",
+        "const_fold_opt__782",
+        "const_fold_opt__690"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_6/FusedBatchNormV3;model_1/model/depthwise_conv2d_7/depthwise;model_1/model/conv2d_6/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_5/add",
+      "inputs": [
+        "model_1/model/p_re_lu_5/add;model_1/model/p_re_lu_5/Relu;model_1/model/p_re_lu_5/Neg_1;model_1/model/p_re_lu_5/Relu_1;model_1/model/p_re_lu_5/mul1",
+        "model_1/model/batch_normalization_6/FusedBatchNormV3;model_1/model/depthwise_conv2d_7/depthwise;model_1/model/conv2d_6/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_5/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_6/add;model_1/model/p_re_lu_6/Relu;model_1/model/p_re_lu_6/Neg_1;model_1/model/p_re_lu_6/Relu_1;model_1/model/p_re_lu_6/mul1",
+      "inputs": [
+        "model_1/model/add_5/add",
+        "const_fold_opt__699"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_6/add;model_1/model/p_re_lu_6/Relu;model_1/model/p_re_lu_6/Neg_1;model_1/model/p_re_lu_6/Relu_1;model_1/model/p_re_lu_6/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_6/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu_6/add;model_1/model/p_re_lu_6/Relu;model_1/model/p_re_lu_6/Neg_1;model_1/model/p_re_lu_6/Relu_1;model_1/model/p_re_lu_6/mul1",
+        "const_fold_opt__803",
+        "const_fold_opt__687"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_6/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 64,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_7/FusedBatchNormV3;model_1/model/depthwise_conv2d_7/depthwise;model_1/model/conv2d_7/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_6/depthwise1",
+        "const_fold_opt__676",
+        "const_fold_opt__681"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_7/FusedBatchNormV3;model_1/model/depthwise_conv2d_7/depthwise;model_1/model/conv2d_7/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_6/add",
+      "inputs": [
+        "model_1/model/p_re_lu_6/add;model_1/model/p_re_lu_6/Relu;model_1/model/p_re_lu_6/Neg_1;model_1/model/p_re_lu_6/Relu_1;model_1/model/p_re_lu_6/mul1",
+        "model_1/model/batch_normalization_7/FusedBatchNormV3;model_1/model/depthwise_conv2d_7/depthwise;model_1/model/conv2d_7/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_6/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_7/add;model_1/model/p_re_lu_7/Relu;model_1/model/p_re_lu_7/Neg_1;model_1/model/p_re_lu_7/Relu_1;model_1/model/p_re_lu_7/mul1",
+      "inputs": [
+        "model_1/model/add_6/add",
+        "const_fold_opt__815"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_7/add;model_1/model/p_re_lu_7/Relu;model_1/model/p_re_lu_7/Neg_1;model_1/model/p_re_lu_7/Relu_1;model_1/model/p_re_lu_7/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "MaxPool",
+      "name": "model_1/model/max_pooling2d_1/MaxPool",
+      "inputs": [
+        "model_1/model/p_re_lu_7/add;model_1/model/p_re_lu_7/Relu;model_1/model/p_re_lu_7/Neg_1;model_1/model/p_re_lu_7/Relu_1;model_1/model/p_re_lu_7/mul1"
+      ],
+      "outputs": [
+        "model_1/model/max_pooling2d_1/MaxPool"
+      ],
+      "attrs": {
+        "strides": [
+          2,
+          2
+        ],
+        "kernel_shape": [
+          2,
+          2
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "op": "Pad",
+      "name": "model_1/model/channel_padding_1/Pad",
+      "inputs": [
+        "model_1/model/max_pooling2d_1/MaxPool",
+        "pad_const__124"
+      ],
+      "outputs": [
+        "model_1/model/channel_padding_1/Pad"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_7/depthwise2",
+      "inputs": [
+        "model_1/model/p_re_lu_7/add;model_1/model/p_re_lu_7/Relu;model_1/model/p_re_lu_7/Neg_1;model_1/model/p_re_lu_7/Relu_1;model_1/model/p_re_lu_7/mul1",
+        "const_fold_opt__726",
+        "const_fold_opt__687"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_7/depthwise2"
+      ],
+      "attrs": {
+        "strides": [
+          2,
+          2
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 64,
+        "pads": [
+          1,
+          1,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_8/FusedBatchNormV3;model_1/model/conv2d_25/Conv2D;model_1/model/conv2d_8/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_7/depthwise2",
+        "const_fold_opt__773",
+        "const_fold_opt__672"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_8/FusedBatchNormV3;model_1/model/conv2d_25/Conv2D;model_1/model/conv2d_8/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_7/add",
+      "inputs": [
+        "model_1/model/channel_padding_1/Pad",
+        "model_1/model/batch_normalization_8/FusedBatchNormV3;model_1/model/conv2d_25/Conv2D;model_1/model/conv2d_8/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_7/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_8/add;model_1/model/p_re_lu_8/Relu;model_1/model/p_re_lu_8/Neg_1;model_1/model/p_re_lu_8/Relu_1;model_1/model/p_re_lu_8/mul1",
+      "inputs": [
+        "model_1/model/add_7/add",
+        "const_fold_opt__824"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_8/add;model_1/model/p_re_lu_8/Relu;model_1/model/p_re_lu_8/Neg_1;model_1/model/p_re_lu_8/Relu_1;model_1/model/p_re_lu_8/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_8/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu_8/add;model_1/model/p_re_lu_8/Relu;model_1/model/p_re_lu_8/Neg_1;model_1/model/p_re_lu_8/Relu_1;model_1/model/p_re_lu_8/mul1",
+        "const_fold_opt__801",
+        "const_fold_opt__616"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_8/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 128,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_9/FusedBatchNormV3;model_1/model/conv2d_25/Conv2D;model_1/model/conv2d_9/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_8/depthwise1",
+        "const_fold_opt__748",
+        "const_fold_opt__769"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_9/FusedBatchNormV3;model_1/model/conv2d_25/Conv2D;model_1/model/conv2d_9/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_8/add",
+      "inputs": [
+        "model_1/model/p_re_lu_8/add;model_1/model/p_re_lu_8/Relu;model_1/model/p_re_lu_8/Neg_1;model_1/model/p_re_lu_8/Relu_1;model_1/model/p_re_lu_8/mul1",
+        "model_1/model/batch_normalization_9/FusedBatchNormV3;model_1/model/conv2d_25/Conv2D;model_1/model/conv2d_9/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_8/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_9/add;model_1/model/p_re_lu_9/Relu;model_1/model/p_re_lu_9/Neg_1;model_1/model/p_re_lu_9/Relu_1;model_1/model/p_re_lu_9/mul1",
+      "inputs": [
+        "model_1/model/add_8/add",
+        "const_fold_opt__826"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_9/add;model_1/model/p_re_lu_9/Relu;model_1/model/p_re_lu_9/Neg_1;model_1/model/p_re_lu_9/Relu_1;model_1/model/p_re_lu_9/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_9/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu_9/add;model_1/model/p_re_lu_9/Relu;model_1/model/p_re_lu_9/Neg_1;model_1/model/p_re_lu_9/Relu_1;model_1/model/p_re_lu_9/mul1",
+        "const_fold_opt__723",
+        "const_fold_opt__616"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_9/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 128,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_10/FusedBatchNormV3;model_1/model/conv2d_25/Conv2D;model_1/model/conv2d_10/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_9/depthwise1",
+        "const_fold_opt__583",
+        "const_fold_opt__587"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_10/FusedBatchNormV3;model_1/model/conv2d_25/Conv2D;model_1/model/conv2d_10/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_9/add",
+      "inputs": [
+        "model_1/model/p_re_lu_9/add;model_1/model/p_re_lu_9/Relu;model_1/model/p_re_lu_9/Neg_1;model_1/model/p_re_lu_9/Relu_1;model_1/model/p_re_lu_9/mul1",
+        "model_1/model/batch_normalization_10/FusedBatchNormV3;model_1/model/conv2d_25/Conv2D;model_1/model/conv2d_10/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_9/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_10/add;model_1/model/p_re_lu_10/Relu;model_1/model/p_re_lu_10/Neg_1;model_1/model/p_re_lu_10/Relu_1;model_1/model/p_re_lu_10/mul1",
+      "inputs": [
+        "model_1/model/add_9/add",
+        "const_fold_opt__720"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_10/add;model_1/model/p_re_lu_10/Relu;model_1/model/p_re_lu_10/Neg_1;model_1/model/p_re_lu_10/Relu_1;model_1/model/p_re_lu_10/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_10/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu_10/add;model_1/model/p_re_lu_10/Relu;model_1/model/p_re_lu_10/Neg_1;model_1/model/p_re_lu_10/Relu_1;model_1/model/p_re_lu_10/mul1",
+        "const_fold_opt__834",
+        "const_fold_opt__616"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_10/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 128,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_11/FusedBatchNormV3;model_1/model/conv2d_25/Conv2D;model_1/model/conv2d_11/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_10/depthwise1",
+        "const_fold_opt__708",
+        "const_fold_opt__575"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_11/FusedBatchNormV3;model_1/model/conv2d_25/Conv2D;model_1/model/conv2d_11/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_10/add",
+      "inputs": [
+        "model_1/model/p_re_lu_10/add;model_1/model/p_re_lu_10/Relu;model_1/model/p_re_lu_10/Neg_1;model_1/model/p_re_lu_10/Relu_1;model_1/model/p_re_lu_10/mul1",
+        "model_1/model/batch_normalization_11/FusedBatchNormV3;model_1/model/conv2d_25/Conv2D;model_1/model/conv2d_11/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_10/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_11/add;model_1/model/p_re_lu_11/Relu;model_1/model/p_re_lu_11/Neg_1;model_1/model/p_re_lu_11/Relu_1;model_1/model/p_re_lu_11/mul1",
+      "inputs": [
+        "model_1/model/add_10/add",
+        "const_fold_opt__807"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_11/add;model_1/model/p_re_lu_11/Relu;model_1/model/p_re_lu_11/Neg_1;model_1/model/p_re_lu_11/Relu_1;model_1/model/p_re_lu_11/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "MaxPool",
+      "name": "model_1/model/max_pooling2d_2/MaxPool",
+      "inputs": [
+        "model_1/model/p_re_lu_11/add;model_1/model/p_re_lu_11/Relu;model_1/model/p_re_lu_11/Neg_1;model_1/model/p_re_lu_11/Relu_1;model_1/model/p_re_lu_11/mul1"
+      ],
+      "outputs": [
+        "model_1/model/max_pooling2d_2/MaxPool"
+      ],
+      "attrs": {
+        "strides": [
+          2,
+          2
+        ],
+        "kernel_shape": [
+          2,
+          2
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "op": "Pad",
+      "name": "model_1/model/channel_padding_2/Pad",
+      "inputs": [
+        "model_1/model/max_pooling2d_2/MaxPool",
+        "pad_const__159"
+      ],
+      "outputs": [
+        "model_1/model/channel_padding_2/Pad"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_11/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu_11/add;model_1/model/p_re_lu_11/Relu;model_1/model/p_re_lu_11/Neg_1;model_1/model/p_re_lu_11/Relu_1;model_1/model/p_re_lu_11/mul1",
+        "const_fold_opt__799",
+        "const_fold_opt__616"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_11/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          2,
+          2
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 128,
+        "pads": [
+          1,
+          1,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_12/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_12/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_11/depthwise1",
+        "const_fold_opt__700",
+        "const_fold_opt__561"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_12/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_12/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_11/add",
+      "inputs": [
+        "model_1/model/channel_padding_2/Pad",
+        "model_1/model/batch_normalization_12/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_12/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_11/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_12/add;model_1/model/p_re_lu_12/Relu;model_1/model/p_re_lu_12/Neg_1;model_1/model/p_re_lu_12/Relu_1;model_1/model/p_re_lu_12/mul1",
+      "inputs": [
+        "model_1/model/add_11/add",
+        "const_fold_opt__734"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_12/add;model_1/model/p_re_lu_12/Relu;model_1/model/p_re_lu_12/Neg_1;model_1/model/p_re_lu_12/Relu_1;model_1/model/p_re_lu_12/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_12/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu_12/add;model_1/model/p_re_lu_12/Relu;model_1/model/p_re_lu_12/Neg_1;model_1/model/p_re_lu_12/Relu_1;model_1/model/p_re_lu_12/mul1",
+        "const_fold_opt__766",
+        "const_fold_opt__546"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_12/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 256,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_13/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_13/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_12/depthwise1",
+        "const_fold_opt__765",
+        "const_fold_opt__548"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_13/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_13/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_12/add",
+      "inputs": [
+        "model_1/model/p_re_lu_12/add;model_1/model/p_re_lu_12/Relu;model_1/model/p_re_lu_12/Neg_1;model_1/model/p_re_lu_12/Relu_1;model_1/model/p_re_lu_12/mul1",
+        "model_1/model/batch_normalization_13/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_13/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_12/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_13/add;model_1/model/p_re_lu_13/Relu;model_1/model/p_re_lu_13/Neg_1;model_1/model/p_re_lu_13/Relu_1;model_1/model/p_re_lu_13/mul1",
+      "inputs": [
+        "model_1/model/add_12/add",
+        "const_fold_opt__758"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_13/add;model_1/model/p_re_lu_13/Relu;model_1/model/p_re_lu_13/Neg_1;model_1/model/p_re_lu_13/Relu_1;model_1/model/p_re_lu_13/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_13/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu_13/add;model_1/model/p_re_lu_13/Relu;model_1/model/p_re_lu_13/Neg_1;model_1/model/p_re_lu_13/Relu_1;model_1/model/p_re_lu_13/mul1",
+        "const_fold_opt__656",
+        "const_fold_opt__546"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_13/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 256,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_14/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_14/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_13/depthwise1",
+        "const_fold_opt__644",
+        "const_fold_opt__651"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_14/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_14/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_13/add",
+      "inputs": [
+        "model_1/model/p_re_lu_13/add;model_1/model/p_re_lu_13/Relu;model_1/model/p_re_lu_13/Neg_1;model_1/model/p_re_lu_13/Relu_1;model_1/model/p_re_lu_13/mul1",
+        "model_1/model/batch_normalization_14/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_14/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_13/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_14/add;model_1/model/p_re_lu_14/Relu;model_1/model/p_re_lu_14/Neg_1;model_1/model/p_re_lu_14/Relu_1;model_1/model/p_re_lu_14/mul1",
+      "inputs": [
+        "model_1/model/add_13/add",
+        "const_fold_opt__819"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_14/add;model_1/model/p_re_lu_14/Relu;model_1/model/p_re_lu_14/Neg_1;model_1/model/p_re_lu_14/Relu_1;model_1/model/p_re_lu_14/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_14/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu_14/add;model_1/model/p_re_lu_14/Relu;model_1/model/p_re_lu_14/Neg_1;model_1/model/p_re_lu_14/Relu_1;model_1/model/p_re_lu_14/mul1",
+        "const_fold_opt__842",
+        "const_fold_opt__546"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_14/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 256,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_15/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_15/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_14/depthwise1",
+        "const_fold_opt__809",
+        "const_fold_opt__622"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_15/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_15/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_14/add",
+      "inputs": [
+        "model_1/model/p_re_lu_14/add;model_1/model/p_re_lu_14/Relu;model_1/model/p_re_lu_14/Neg_1;model_1/model/p_re_lu_14/Relu_1;model_1/model/p_re_lu_14/mul1",
+        "model_1/model/batch_normalization_15/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_15/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_14/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_15/add;model_1/model/p_re_lu_15/Relu;model_1/model/p_re_lu_15/Neg_1;model_1/model/p_re_lu_15/Relu_1;model_1/model/p_re_lu_15/mul1",
+      "inputs": [
+        "model_1/model/add_14/add",
+        "const_fold_opt__655"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_15/add;model_1/model/p_re_lu_15/Relu;model_1/model/p_re_lu_15/Neg_1;model_1/model/p_re_lu_15/Relu_1;model_1/model/p_re_lu_15/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "MaxPool",
+      "name": "model_1/model/max_pooling2d_3/MaxPool",
+      "inputs": [
+        "model_1/model/p_re_lu_15/add;model_1/model/p_re_lu_15/Relu;model_1/model/p_re_lu_15/Neg_1;model_1/model/p_re_lu_15/Relu_1;model_1/model/p_re_lu_15/mul1"
+      ],
+      "outputs": [
+        "model_1/model/max_pooling2d_3/MaxPool"
+      ],
+      "attrs": {
+        "strides": [
+          2,
+          2
+        ],
+        "kernel_shape": [
+          2,
+          2
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_15/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu_15/add;model_1/model/p_re_lu_15/Relu;model_1/model/p_re_lu_15/Neg_1;model_1/model/p_re_lu_15/Relu_1;model_1/model/p_re_lu_15/mul1",
+        "const_fold_opt__648",
+        "const_fold_opt__546"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_15/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          2,
+          2
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 256,
+        "pads": [
+          1,
+          1,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_16/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_16/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_15/depthwise1",
+        "const_fold_opt__662",
+        "const_fold_opt__621"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_16/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_16/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_15/add",
+      "inputs": [
+        "model_1/model/max_pooling2d_3/MaxPool",
+        "model_1/model/batch_normalization_16/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_16/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_15/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_16/add;model_1/model/p_re_lu_16/Relu;model_1/model/p_re_lu_16/Neg_1;model_1/model/p_re_lu_16/Relu_1;model_1/model/p_re_lu_16/mul1",
+      "inputs": [
+        "model_1/model/add_15/add",
+        "const_fold_opt__822"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_16/add;model_1/model/p_re_lu_16/Relu;model_1/model/p_re_lu_16/Neg_1;model_1/model/p_re_lu_16/Relu_1;model_1/model/p_re_lu_16/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_16/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu_16/add;model_1/model/p_re_lu_16/Relu;model_1/model/p_re_lu_16/Neg_1;model_1/model/p_re_lu_16/Relu_1;model_1/model/p_re_lu_16/mul1",
+        "const_fold_opt__757",
+        "const_fold_opt__546"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_16/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 256,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_17/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_17/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_16/depthwise1",
+        "const_fold_opt__820",
+        "const_fold_opt__657"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_17/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_17/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_16/add",
+      "inputs": [
+        "model_1/model/p_re_lu_16/add;model_1/model/p_re_lu_16/Relu;model_1/model/p_re_lu_16/Neg_1;model_1/model/p_re_lu_16/Relu_1;model_1/model/p_re_lu_16/mul1",
+        "model_1/model/batch_normalization_17/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_17/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_16/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_17/add;model_1/model/p_re_lu_17/Relu;model_1/model/p_re_lu_17/Neg_1;model_1/model/p_re_lu_17/Relu_1;model_1/model/p_re_lu_17/mul1",
+      "inputs": [
+        "model_1/model/add_16/add",
+        "const_fold_opt__825"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_17/add;model_1/model/p_re_lu_17/Relu;model_1/model/p_re_lu_17/Neg_1;model_1/model/p_re_lu_17/Relu_1;model_1/model/p_re_lu_17/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_17/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu_17/add;model_1/model/p_re_lu_17/Relu;model_1/model/p_re_lu_17/Neg_1;model_1/model/p_re_lu_17/Relu_1;model_1/model/p_re_lu_17/mul1",
+        "const_fold_opt__753",
+        "const_fold_opt__546"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_17/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 256,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_18/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_18/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_17/depthwise1",
+        "const_fold_opt__817",
+        "const_fold_opt__649"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_18/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_18/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_17/add",
+      "inputs": [
+        "model_1/model/p_re_lu_17/add;model_1/model/p_re_lu_17/Relu;model_1/model/p_re_lu_17/Neg_1;model_1/model/p_re_lu_17/Relu_1;model_1/model/p_re_lu_17/mul1",
+        "model_1/model/batch_normalization_18/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_18/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_17/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_18/add;model_1/model/p_re_lu_18/Relu;model_1/model/p_re_lu_18/Neg_1;model_1/model/p_re_lu_18/Relu_1;model_1/model/p_re_lu_18/mul1",
+      "inputs": [
+        "model_1/model/add_17/add",
+        "const_fold_opt__778"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_18/add;model_1/model/p_re_lu_18/Relu;model_1/model/p_re_lu_18/Neg_1;model_1/model/p_re_lu_18/Relu_1;model_1/model/p_re_lu_18/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_18/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu_18/add;model_1/model/p_re_lu_18/Relu;model_1/model/p_re_lu_18/Neg_1;model_1/model/p_re_lu_18/Relu_1;model_1/model/p_re_lu_18/mul1",
+        "const_fold_opt__638",
+        "const_fold_opt__546"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_18/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 256,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_19/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_19/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_18/depthwise1",
+        "const_fold_opt__636",
+        "const_fold_opt__640"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_19/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_19/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_18/add",
+      "inputs": [
+        "model_1/model/p_re_lu_18/add;model_1/model/p_re_lu_18/Relu;model_1/model/p_re_lu_18/Neg_1;model_1/model/p_re_lu_18/Relu_1;model_1/model/p_re_lu_18/mul1",
+        "model_1/model/batch_normalization_19/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_19/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_18/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_19/add;model_1/model/p_re_lu_19/Relu;model_1/model/p_re_lu_19/Neg_1;model_1/model/p_re_lu_19/Relu_1;model_1/model/p_re_lu_19/mul1",
+      "inputs": [
+        "model_1/model/add_18/add",
+        "const_fold_opt__810"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_19/add;model_1/model/p_re_lu_19/Relu;model_1/model/p_re_lu_19/Neg_1;model_1/model/p_re_lu_19/Relu_1;model_1/model/p_re_lu_19/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Resize",
+      "name": "Resize__235",
+      "inputs": [
+        "model_1/model/p_re_lu_19/add;model_1/model/p_re_lu_19/Relu;model_1/model/p_re_lu_19/Neg_1;model_1/model/p_re_lu_19/Relu_1;model_1/model/p_re_lu_19/mul1",
+        "const_empty_float__258",
+        "const_empty_float__258",
+        "Concat__234:0"
+      ],
+      "outputs": [
+        "Resize__235:0"
+      ],
+      "attrs": {
+        "coordinate_transformation_mode": "half_pixel",
+        "exclude_outside": 0,
+        "mode": "linear",
+        "nearest_mode": "floor"
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_20/FusedBatchNormV3;model_1/model/conv2d_20/BiasAdd/ReadVariableOp/resource;model_1/model/conv2d_20/BiasAdd;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_20/Conv2D",
+      "inputs": [
+        "Resize__235:0",
+        "const_fold_opt__682",
+        "const_fold_opt__686"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_20/FusedBatchNormV3;model_1/model/conv2d_20/BiasAdd/ReadVariableOp/resource;model_1/model/conv2d_20/BiasAdd;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_20/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_20/add;model_1/model/p_re_lu_20/Relu;model_1/model/p_re_lu_20/Neg_1;model_1/model/p_re_lu_20/Relu_1;model_1/model/p_re_lu_20/mul1",
+      "inputs": [
+        "model_1/model/batch_normalization_20/FusedBatchNormV3;model_1/model/conv2d_20/BiasAdd/ReadVariableOp/resource;model_1/model/conv2d_20/BiasAdd;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_20/Conv2D",
+        "const_fold_opt__836"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_20/add;model_1/model/p_re_lu_20/Relu;model_1/model/p_re_lu_20/Neg_1;model_1/model/p_re_lu_20/Relu_1;model_1/model/p_re_lu_20/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_19/add",
+      "inputs": [
+        "model_1/model/p_re_lu_15/add;model_1/model/p_re_lu_15/Relu;model_1/model/p_re_lu_15/Neg_1;model_1/model/p_re_lu_15/Relu_1;model_1/model/p_re_lu_15/mul1",
+        "model_1/model/p_re_lu_20/add;model_1/model/p_re_lu_20/Relu;model_1/model/p_re_lu_20/Neg_1;model_1/model/p_re_lu_20/Relu_1;model_1/model/p_re_lu_20/mul1"
+      ],
+      "outputs": [
+        "model_1/model/add_19/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_19/depthwise1",
+      "inputs": [
+        "model_1/model/add_19/add",
+        "const_fold_opt__812",
+        "const_fold_opt__546"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_19/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 256,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_21/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_21/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_19/depthwise1",
+        "const_fold_opt__775",
+        "const_fold_opt__677"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_21/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_21/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_20/add",
+      "inputs": [
+        "model_1/model/add_19/add",
+        "model_1/model/batch_normalization_21/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D;model_1/model/conv2d_21/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_20/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_21/add;model_1/model/p_re_lu_21/Relu;model_1/model/p_re_lu_21/Neg_1;model_1/model/p_re_lu_21/Relu_1;model_1/model/p_re_lu_21/mul1",
+      "inputs": [
+        "model_1/model/add_20/add",
+        "const_fold_opt__784"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_21/add;model_1/model/p_re_lu_21/Relu;model_1/model/p_re_lu_21/Neg_1;model_1/model/p_re_lu_21/Relu_1;model_1/model/p_re_lu_21/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_20/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu_21/add;model_1/model/p_re_lu_21/Relu;model_1/model/p_re_lu_21/Neg_1;model_1/model/p_re_lu_21/Relu_1;model_1/model/p_re_lu_21/mul1",
+        "const_fold_opt__839",
+        "const_fold_opt__546"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_20/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 256,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_22/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_20/depthwise1",
+        "const_fold_opt__572",
+        "const_fold_opt__667"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_22/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_21/add",
+      "inputs": [
+        "model_1/model/p_re_lu_21/add;model_1/model/p_re_lu_21/Relu;model_1/model/p_re_lu_21/Neg_1;model_1/model/p_re_lu_21/Relu_1;model_1/model/p_re_lu_21/mul1",
+        "model_1/model/batch_normalization_22/FusedBatchNormV3;model_1/model/conv2d_22/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_21/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_22/add;model_1/model/p_re_lu_22/Relu;model_1/model/p_re_lu_22/Neg_1;model_1/model/p_re_lu_22/Relu_1;model_1/model/p_re_lu_22/mul1",
+      "inputs": [
+        "model_1/model/add_21/add",
+        "const_fold_opt__787"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_22/add;model_1/model/p_re_lu_22/Relu;model_1/model/p_re_lu_22/Neg_1;model_1/model/p_re_lu_22/Relu_1;model_1/model/p_re_lu_22/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/regressor_palm_16_NO_PRUNING/BiasAdd;model_1/model/regressor_palm_16_NO_PRUNING/Conv2D;model_1/model/regressor_palm_16_NO_PRUNING/BiasAdd/ReadVariableOp/resource1",
+      "inputs": [
+        "model_1/model/p_re_lu_22/add;model_1/model/p_re_lu_22/Relu;model_1/model/p_re_lu_22/Neg_1;model_1/model/p_re_lu_22/Relu_1;model_1/model/p_re_lu_22/mul1",
+        "const_fold_opt__631",
+        "const_fold_opt__751"
+      ],
+      "outputs": [
+        "model_1/model/regressor_palm_16_NO_PRUNING/BiasAdd;model_1/model/regressor_palm_16_NO_PRUNING/Conv2D;model_1/model/regressor_palm_16_NO_PRUNING/BiasAdd/ReadVariableOp/resource1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Transpose",
+      "name": "model_1/model/regressor_palm_16_NO_PRUNING/BiasAdd;model_1/model/regressor_palm_16_NO_PRUNING/Conv2D;model_1/model/regressor_palm_16_NO_PRUNING/BiasAdd/ReadVariableOp/resource1__270",
+      "inputs": [
+        "model_1/model/regressor_palm_16_NO_PRUNING/BiasAdd;model_1/model/regressor_palm_16_NO_PRUNING/Conv2D;model_1/model/regressor_palm_16_NO_PRUNING/BiasAdd/ReadVariableOp/resource1"
+      ],
+      "outputs": [
+        "model_1/model/regressor_palm_16_NO_PRUNING/BiasAdd;model_1/model/regressor_palm_16_NO_PRUNING/Conv2D;model_1/model/regressor_palm_16_NO_PRUNING/BiasAdd/ReadVariableOp/resource1__270:0"
+      ],
+      "attrs": {
+        "perm": [
+          0,
+          2,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "op": "Reshape",
+      "name": "model_1/model/reshaped_regressor_palm_16/Reshape",
+      "inputs": [
+        "model_1/model/regressor_palm_16_NO_PRUNING/BiasAdd;model_1/model/regressor_palm_16_NO_PRUNING/Conv2D;model_1/model/regressor_palm_16_NO_PRUNING/BiasAdd/ReadVariableOp/resource1__270:0",
+        "const_fold_opt__588"
+      ],
+      "outputs": [
+        "model_1/model/reshaped_regressor_palm_16/Reshape"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/classifier_palm_16_NO_PRUNING/BiasAdd;model_1/model/classifier_palm_16_NO_PRUNING/Conv2D;model_1/model/classifier_palm_16_NO_PRUNING/BiasAdd/ReadVariableOp/resource1",
+      "inputs": [
+        "model_1/model/p_re_lu_22/add;model_1/model/p_re_lu_22/Relu;model_1/model/p_re_lu_22/Neg_1;model_1/model/p_re_lu_22/Relu_1;model_1/model/p_re_lu_22/mul1",
+        "const_fold_opt__625",
+        "const_fold_opt__627"
+      ],
+      "outputs": [
+        "model_1/model/classifier_palm_16_NO_PRUNING/BiasAdd;model_1/model/classifier_palm_16_NO_PRUNING/Conv2D;model_1/model/classifier_palm_16_NO_PRUNING/BiasAdd/ReadVariableOp/resource1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Transpose",
+      "name": "model_1/model/classifier_palm_16_NO_PRUNING/BiasAdd;model_1/model/classifier_palm_16_NO_PRUNING/Conv2D;model_1/model/classifier_palm_16_NO_PRUNING/BiasAdd/ReadVariableOp/resource1__274",
+      "inputs": [
+        "model_1/model/classifier_palm_16_NO_PRUNING/BiasAdd;model_1/model/classifier_palm_16_NO_PRUNING/Conv2D;model_1/model/classifier_palm_16_NO_PRUNING/BiasAdd/ReadVariableOp/resource1"
+      ],
+      "outputs": [
+        "model_1/model/classifier_palm_16_NO_PRUNING/BiasAdd;model_1/model/classifier_palm_16_NO_PRUNING/Conv2D;model_1/model/classifier_palm_16_NO_PRUNING/BiasAdd/ReadVariableOp/resource1__274:0"
+      ],
+      "attrs": {
+        "perm": [
+          0,
+          2,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "op": "Reshape",
+      "name": "model_1/model/reshaped_classifier_palm_16/Reshape",
+      "inputs": [
+        "model_1/model/classifier_palm_16_NO_PRUNING/BiasAdd;model_1/model/classifier_palm_16_NO_PRUNING/Conv2D;model_1/model/classifier_palm_16_NO_PRUNING/BiasAdd/ReadVariableOp/resource1__274:0",
+        "const_fold_opt__724"
+      ],
+      "outputs": [
+        "model_1/model/reshaped_classifier_palm_16/Reshape"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Resize",
+      "name": "Resize__264",
+      "inputs": [
+        "model_1/model/p_re_lu_22/add;model_1/model/p_re_lu_22/Relu;model_1/model/p_re_lu_22/Neg_1;model_1/model/p_re_lu_22/Relu_1;model_1/model/p_re_lu_22/mul1",
+        "const_empty_float__258",
+        "const_empty_float__258",
+        "Concat__263:0"
+      ],
+      "outputs": [
+        "Resize__264:0"
+      ],
+      "attrs": {
+        "coordinate_transformation_mode": "half_pixel",
+        "exclude_outside": 0,
+        "mode": "linear",
+        "nearest_mode": "floor"
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_23/FusedBatchNormV3;model_1/model/conv2d_23/BiasAdd/ReadVariableOp/resource;model_1/model/conv2d_23/BiasAdd;model_1/model/conv2d_25/Conv2D;model_1/model/conv2d_23/Conv2D",
+      "inputs": [
+        "Resize__264:0",
+        "const_fold_opt__739",
+        "const_fold_opt__653"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_23/FusedBatchNormV3;model_1/model/conv2d_23/BiasAdd/ReadVariableOp/resource;model_1/model/conv2d_23/BiasAdd;model_1/model/conv2d_25/Conv2D;model_1/model/conv2d_23/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_23/add;model_1/model/p_re_lu_23/Relu;model_1/model/p_re_lu_23/Neg_1;model_1/model/p_re_lu_23/Relu_1;model_1/model/p_re_lu_23/mul1",
+      "inputs": [
+        "model_1/model/batch_normalization_23/FusedBatchNormV3;model_1/model/conv2d_23/BiasAdd/ReadVariableOp/resource;model_1/model/conv2d_23/BiasAdd;model_1/model/conv2d_25/Conv2D;model_1/model/conv2d_23/Conv2D",
+        "const_fold_opt__728"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_23/add;model_1/model/p_re_lu_23/Relu;model_1/model/p_re_lu_23/Neg_1;model_1/model/p_re_lu_23/Relu_1;model_1/model/p_re_lu_23/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_22/add",
+      "inputs": [
+        "model_1/model/p_re_lu_11/add;model_1/model/p_re_lu_11/Relu;model_1/model/p_re_lu_11/Neg_1;model_1/model/p_re_lu_11/Relu_1;model_1/model/p_re_lu_11/mul1",
+        "model_1/model/p_re_lu_23/add;model_1/model/p_re_lu_23/Relu;model_1/model/p_re_lu_23/Neg_1;model_1/model/p_re_lu_23/Relu_1;model_1/model/p_re_lu_23/mul1"
+      ],
+      "outputs": [
+        "model_1/model/add_22/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_21/depthwise1",
+      "inputs": [
+        "model_1/model/add_22/add",
+        "const_fold_opt__831",
+        "const_fold_opt__616"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_21/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 128,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_24/FusedBatchNormV3;model_1/model/conv2d_25/Conv2D;model_1/model/conv2d_24/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_21/depthwise1",
+        "const_fold_opt__719",
+        "const_fold_opt__754"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_24/FusedBatchNormV3;model_1/model/conv2d_25/Conv2D;model_1/model/conv2d_24/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_23/add",
+      "inputs": [
+        "model_1/model/add_22/add",
+        "model_1/model/batch_normalization_24/FusedBatchNormV3;model_1/model/conv2d_25/Conv2D;model_1/model/conv2d_24/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_23/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_24/add;model_1/model/p_re_lu_24/Relu;model_1/model/p_re_lu_24/Neg_1;model_1/model/p_re_lu_24/Relu_1;model_1/model/p_re_lu_24/mul1",
+      "inputs": [
+        "model_1/model/add_23/add",
+        "const_fold_opt__840"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_24/add;model_1/model/p_re_lu_24/Relu;model_1/model/p_re_lu_24/Neg_1;model_1/model/p_re_lu_24/Relu_1;model_1/model/p_re_lu_24/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/depthwise_conv2d_22/depthwise1",
+      "inputs": [
+        "model_1/model/p_re_lu_24/add;model_1/model/p_re_lu_24/Relu;model_1/model/p_re_lu_24/Neg_1;model_1/model/p_re_lu_24/Relu_1;model_1/model/p_re_lu_24/mul1",
+        "const_fold_opt__829",
+        "const_fold_opt__616"
+      ],
+      "outputs": [
+        "model_1/model/depthwise_conv2d_22/depthwise1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 128,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/conv2d_25/Conv2D1",
+      "inputs": [
+        "model_1/model/depthwise_conv2d_22/depthwise1",
+        "const_fold_opt__713",
+        "const_fold_opt__581"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/conv2d_25/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_24/add",
+      "inputs": [
+        "model_1/model/p_re_lu_24/add;model_1/model/p_re_lu_24/Relu;model_1/model/p_re_lu_24/Neg_1;model_1/model/p_re_lu_24/Relu_1;model_1/model/p_re_lu_24/mul1",
+        "model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/conv2d_25/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_24/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "PRelu",
+      "name": "model_1/model/p_re_lu_25/add;model_1/model/p_re_lu_25/Relu;model_1/model/p_re_lu_25/Neg_1;model_1/model/p_re_lu_25/Relu_1;model_1/model/p_re_lu_25/mul1",
+      "inputs": [
+        "model_1/model/add_24/add",
+        "const_fold_opt__838"
+      ],
+      "outputs": [
+        "model_1/model/p_re_lu_25/add;model_1/model/p_re_lu_25/Relu;model_1/model/p_re_lu_25/Neg_1;model_1/model/p_re_lu_25/Relu_1;model_1/model/p_re_lu_25/mul1"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/regressor_palm_8_NO_PRUNING/BiasAdd;model_1/model/regressor_palm_8_NO_PRUNING/Conv2D;model_1/model/regressor_palm_8_NO_PRUNING/BiasAdd/ReadVariableOp/resource1",
+      "inputs": [
+        "model_1/model/p_re_lu_25/add;model_1/model/p_re_lu_25/Relu;model_1/model/p_re_lu_25/Neg_1;model_1/model/p_re_lu_25/Relu_1;model_1/model/p_re_lu_25/mul1",
+        "const_fold_opt__595",
+        "const_fold_opt__597"
+      ],
+      "outputs": [
+        "model_1/model/regressor_palm_8_NO_PRUNING/BiasAdd;model_1/model/regressor_palm_8_NO_PRUNING/Conv2D;model_1/model/regressor_palm_8_NO_PRUNING/BiasAdd/ReadVariableOp/resource1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Transpose",
+      "name": "model_1/model/regressor_palm_8_NO_PRUNING/BiasAdd;model_1/model/regressor_palm_8_NO_PRUNING/Conv2D;model_1/model/regressor_palm_8_NO_PRUNING/BiasAdd/ReadVariableOp/resource1__294",
+      "inputs": [
+        "model_1/model/regressor_palm_8_NO_PRUNING/BiasAdd;model_1/model/regressor_palm_8_NO_PRUNING/Conv2D;model_1/model/regressor_palm_8_NO_PRUNING/BiasAdd/ReadVariableOp/resource1"
+      ],
+      "outputs": [
+        "model_1/model/regressor_palm_8_NO_PRUNING/BiasAdd;model_1/model/regressor_palm_8_NO_PRUNING/Conv2D;model_1/model/regressor_palm_8_NO_PRUNING/BiasAdd/ReadVariableOp/resource1__294:0"
+      ],
+      "attrs": {
+        "perm": [
+          0,
+          2,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "op": "Reshape",
+      "name": "model_1/model/reshaped_regressor_palm_8/Reshape",
+      "inputs": [
+        "model_1/model/regressor_palm_8_NO_PRUNING/BiasAdd;model_1/model/regressor_palm_8_NO_PRUNING/Conv2D;model_1/model/regressor_palm_8_NO_PRUNING/BiasAdd/ReadVariableOp/resource1__294:0",
+        "const_fold_opt__588"
+      ],
+      "outputs": [
+        "model_1/model/reshaped_regressor_palm_8/Reshape"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Concat",
+      "name": "Identity",
+      "inputs": [
+        "model_1/model/reshaped_regressor_palm_8/Reshape",
+        "model_1/model/reshaped_regressor_palm_16/Reshape"
+      ],
+      "outputs": [
+        "Identity"
+      ],
+      "attrs": {
+        "axis": 1
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/classifier_palm_8_NO_PRUNING/BiasAdd;model_1/model/classifier_palm_8_NO_PRUNING/Conv2D;model_1/model/classifier_palm_8_NO_PRUNING/BiasAdd/ReadVariableOp/resource1",
+      "inputs": [
+        "model_1/model/p_re_lu_25/add;model_1/model/p_re_lu_25/Relu;model_1/model/p_re_lu_25/Neg_1;model_1/model/p_re_lu_25/Relu_1;model_1/model/p_re_lu_25/mul1",
+        "const_fold_opt__835",
+        "const_fold_opt__733"
+      ],
+      "outputs": [
+        "model_1/model/classifier_palm_8_NO_PRUNING/BiasAdd;model_1/model/classifier_palm_8_NO_PRUNING/Conv2D;model_1/model/classifier_palm_8_NO_PRUNING/BiasAdd/ReadVariableOp/resource1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Transpose",
+      "name": "model_1/model/classifier_palm_8_NO_PRUNING/BiasAdd;model_1/model/classifier_palm_8_NO_PRUNING/Conv2D;model_1/model/classifier_palm_8_NO_PRUNING/BiasAdd/ReadVariableOp/resource1__298",
+      "inputs": [
+        "model_1/model/classifier_palm_8_NO_PRUNING/BiasAdd;model_1/model/classifier_palm_8_NO_PRUNING/Conv2D;model_1/model/classifier_palm_8_NO_PRUNING/BiasAdd/ReadVariableOp/resource1"
+      ],
+      "outputs": [
+        "model_1/model/classifier_palm_8_NO_PRUNING/BiasAdd;model_1/model/classifier_palm_8_NO_PRUNING/Conv2D;model_1/model/classifier_palm_8_NO_PRUNING/BiasAdd/ReadVariableOp/resource1__298:0"
+      ],
+      "attrs": {
+        "perm": [
+          0,
+          2,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "op": "Reshape",
+      "name": "model_1/model/reshaped_classifier_palm_8/Reshape",
+      "inputs": [
+        "model_1/model/classifier_palm_8_NO_PRUNING/BiasAdd;model_1/model/classifier_palm_8_NO_PRUNING/Conv2D;model_1/model/classifier_palm_8_NO_PRUNING/BiasAdd/ReadVariableOp/resource1__298:0",
+        "const_fold_opt__724"
+      ],
+      "outputs": [
+        "model_1/model/reshaped_classifier_palm_8/Reshape"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Concat",
+      "name": "Identity_1",
+      "inputs": [
+        "model_1/model/reshaped_classifier_palm_8/Reshape",
+        "model_1/model/reshaped_classifier_palm_16/Reshape"
+      ],
+      "outputs": [
+        "Identity_1"
+      ],
+      "attrs": {
+        "axis": 1
+      }
+    }
+  ]
+}

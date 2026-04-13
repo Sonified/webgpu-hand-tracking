@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>WGSL Engine Benchmark</title></head>
+<body style="background:#111;color:#0f0;font:14px monospace;padding:20px;white-space:pre-wrap;">
+<div id="log">Palm Detector Speed Shootout
+============================
+</div>
+<script type="module">
+const L = document.getElementById('log');
+const log = s => { L.textContent += s + '\n'; console.log(s); };
+
+(async () => {
+try {
+  const N = 50; // iterations
+
+  // ============================================================
+  // Setup: WebGPU device, model, shaders, buffers
+  // ============================================================
+  if (!navigator.gpu) { log('No WebGPU'); return; }
+  const adapter = await navigator.gpu.requestAdapter();
+  const device = await adapter.requestDevice();
+  log('WebGPU ready');
+
+  const graph = await (await fetch('../models/palm_detection_lite.json')).json();
+  const allWeights = new Float32Array(await (await fetch('../models/palm_detection_lite.bin')).arrayBuffer());
+
+  const W = {};
+  for (const [name, info] of Object.entries(graph.weights)) {
+    if (info.length === 0) continue;
+    const buf = device.createBuffer({ size: Math.max(info.length * 4, 4), usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+    device.queue.writeBuffer(buf, 0, allWeights.subarray(info.offset, info.offset + info.length));
+    W[name] = buf;
+  }
+
+  const P = {
+    conv2d: device.createComputePipeline({ layout: 'auto', compute: { module: device.createShaderModule({ code: await (await fetch('./conv2d.wgsl')).text() }), entryPoint: 'main' } }),
+    maxpool: device.createComputePipeline({ layout: 'auto', compute: { module: device.createShaderModule({ code: await (await fetch('./maxpool.wgsl')).text() }), entryPoint: 'main' } }),
+    resize: device.createComputePipeline({ layout: 'auto', compute: { module: device.createShaderModule({ code: await (await fetch('./resize.wgsl')).text() }), entryPoint: 'main' } }),
+  };
+  log('Shaders compiled');
+
+  const BF = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST;
+  const bf = n => device.createBuffer({ size: n * 4, usage: BF });
+  const dummy = device.createBuffer({ size: 4, usage: GPUBufferUsage.STORAGE });
+
+  const B = {
+    input_nchw: bf(3*192*192),
+    s1_a: bf(32*96*96), s1_b: bf(32*96*96), s1_dw: bf(32*96*96), s1_pool: bf(64*48*48),
+    s2_a: bf(64*48*48), s2_b: bf(64*48*48), s2_dw: bf(64*48*48), s2_dw_ds: bf(32*48*48), s2_pool: bf(128*24*24),
+    s3_a: bf(128*24*24), s3_b: bf(128*24*24), s3_dw: bf(128*24*24), s3_dw_ds: bf(64*24*24), s3_pool: bf(256*12*12),
+    s4_a: bf(256*12*12), s4_b: bf(256*12*12), s4_dw: bf(256*12*12), s4_dw_ds: bf(128*12*12), s4_pool: bf(256*6*6),
+    s5_a: bf(256*6*6), s5_b: bf(256*6*6), s5_dw: bf(256*6*6),
+    fpn1_up: bf(256*12*12), fpn1_a: bf(256*12*12), fpn1_b: bf(256*12*12), fpn1_dw: bf(256*12*12),
+    fpn2_up: bf(256*24*24), fpn2_a: bf(128*24*24), fpn2_b: bf(128*24*24), fpn2_dw: bf(128*24*24),
+    reg_16: bf(108*12*12), cls_16: bf(6*12*12), reg_8: bf(36*24*24), cls_8: bf(2*24*24),
+  };
+
+  device.queue.writeBuffer(B.input_nchw, 0, new Float32Array(3 * 192 * 192).fill(0.5));
+  const g = graph.graph;
+
+  // ============================================================
+  // Dispatch helpers (compact)
+  // ============================================================
+  function dc(e, i, o, r, wN, bN, pN, iC, iH, iW, oC, oH, oW, kH, kW, sH, sW, pT, pL, gr) {
+    const hp = !!pN, hr = !!r;
+    const p = new Uint32Array([1, iC, iH, iW, oC, oH, oW, kH, kW, sH, sW, pT, pL, gr, hp ? 1 : 0, hr ? 1 : 0]);
+    const pb = device.createBuffer({ size: p.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    device.queue.writeBuffer(pb, 0, p);
+    const ps = e.beginComputePass();
+    ps.setPipeline(P.conv2d);
+    ps.setBindGroup(0, device.createBindGroup({ layout: P.conv2d.getBindGroupLayout(0), entries: [
+      { binding: 0, resource: { buffer: pb } }, { binding: 1, resource: { buffer: i } },
+      { binding: 2, resource: { buffer: W[wN] } }, { binding: 3, resource: { buffer: W[bN] } },
+      { binding: 4, resource: { buffer: hp ? W[pN] : dummy } },
+      { binding: 5, resource: { buffer: hr ? r : dummy } }, { binding: 6, resource: { buffer: o } },
+    ] }));
+    ps.dispatchWorkgroups(Math.ceil(oW / 8), Math.ceil(oH / 8), oC);
+    ps.end();
+  }
+  function dmp(e, i, o, ch, iH, iW, oCh) {
+    const p = new Uint32Array([ch, iH, iW, iH / 2, iW / 2, oCh]);
+    const pb = device.createBuffer({ size: p.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    device.queue.writeBuffer(pb, 0, p);
+    const ps = e.beginComputePass(); ps.setPipeline(P.maxpool);
+    ps.setBindGroup(0, device.createBindGroup({ layout: P.maxpool.getBindGroupLayout(0), entries: [
+      { binding: 0, resource: { buffer: pb } }, { binding: 1, resource: { buffer: i } }, { binding: 2, resource: { buffer: o } },
+    ] })); ps.dispatchWorkgroups(Math.ceil(iW / 2 / 8), Math.ceil(iH / 2 / 8), oCh); ps.end();
+  }
+  function dr(e, i, o, ch, iH, iW) {
+    const p = new Uint32Array([ch, iH, iW, iH * 2, iW * 2]);
+    const pb = device.createBuffer({ size: p.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    device.queue.writeBuffer(pb, 0, p);
+    const ps = e.beginComputePass(); ps.setPipeline(P.resize);
+    ps.setBindGroup(0, device.createBindGroup({ layout: P.resize.getBindGroupLayout(0), entries: [
+      { binding: 0, resource: { buffer: pb } }, { binding: 1, resource: { buffer: i } }, { binding: 2, resource: { buffer: o } },
+    ] })); ps.dispatchWorkgroups(Math.ceil(iW * 2 / 8), Math.ceil(iH * 2 / 8), ch); ps.end();
+  }
+  function rb(e, i, dO, o, r, dW, dB, pW, pB, pS, C, H, Wd, gr) {
+    dc(e, i, dO, null, dW, dB, null, C, H, Wd, C, H, Wd, 5, 5, 1, 1, 2, 2, gr);
+    const oC = graph.weights[pW].shape[0];
+    dc(e, dO, o, r, pW, pB, pS, C, H, Wd, oC, H, Wd, 1, 1, 1, 1, 0, 0, 1);
+  }
+
+  // ============================================================
+  // Full pipeline: ONE encoder, ONE submit, ZERO CPU involvement
+  // ============================================================
+  function runPipeline() {
+    const e = device.createCommandEncoder();
+    // Stage 1
+    dc(e,B.input_nchw,B.s1_a,null,g[1].inputs[1],g[1].inputs[2],g[2].inputs[1],3,192,192,32,96,96,5,5,2,2,1,1,1);
+    rb(e,B.s1_a,B.s1_dw,B.s1_b,B.s1_a,g[3].inputs[1],g[3].inputs[2],g[4].inputs[1],g[4].inputs[2],g[6].inputs[1],32,96,96,32);
+    rb(e,B.s1_b,B.s1_dw,B.s1_a,B.s1_b,g[7].inputs[1],g[7].inputs[2],g[8].inputs[1],g[8].inputs[2],g[10].inputs[1],32,96,96,32);
+    rb(e,B.s1_a,B.s1_dw,B.s1_b,B.s1_a,g[11].inputs[1],g[11].inputs[2],g[12].inputs[1],g[12].inputs[2],g[14].inputs[1],32,96,96,32);
+    dmp(e,B.s1_b,B.s1_pool,32,96,96,64);
+    // Stage 2
+    dc(e,B.s1_b,B.s2_dw_ds,null,g[17].inputs[1],g[17].inputs[2],null,32,96,96,32,48,48,5,5,2,2,1,1,32);
+    dc(e,B.s2_dw_ds,B.s2_a,B.s1_pool,g[18].inputs[1],g[18].inputs[2],g[20].inputs[1],32,48,48,64,48,48,1,1,1,1,0,0,1);
+    rb(e,B.s2_a,B.s2_dw,B.s2_b,B.s2_a,g[21].inputs[1],g[21].inputs[2],g[22].inputs[1],g[22].inputs[2],g[24].inputs[1],64,48,48,64);
+    rb(e,B.s2_b,B.s2_dw,B.s2_a,B.s2_b,g[25].inputs[1],g[25].inputs[2],g[26].inputs[1],g[26].inputs[2],g[28].inputs[1],64,48,48,64);
+    rb(e,B.s2_a,B.s2_dw,B.s2_b,B.s2_a,g[29].inputs[1],g[29].inputs[2],g[30].inputs[1],g[30].inputs[2],g[32].inputs[1],64,48,48,64);
+    dmp(e,B.s2_b,B.s2_pool,64,48,48,128);
+    // Stage 3
+    dc(e,B.s2_b,B.s3_dw_ds,null,g[35].inputs[1],g[35].inputs[2],null,64,48,48,64,24,24,5,5,2,2,1,1,64);
+    dc(e,B.s3_dw_ds,B.s3_a,B.s2_pool,g[36].inputs[1],g[36].inputs[2],g[38].inputs[1],64,24,24,128,24,24,1,1,1,1,0,0,1);
+    rb(e,B.s3_a,B.s3_dw,B.s3_b,B.s3_a,g[39].inputs[1],g[39].inputs[2],g[40].inputs[1],g[40].inputs[2],g[42].inputs[1],128,24,24,128);
+    rb(e,B.s3_b,B.s3_dw,B.s3_a,B.s3_b,g[43].inputs[1],g[43].inputs[2],g[44].inputs[1],g[44].inputs[2],g[46].inputs[1],128,24,24,128);
+    rb(e,B.s3_a,B.s3_dw,B.s3_b,B.s3_a,g[47].inputs[1],g[47].inputs[2],g[48].inputs[1],g[48].inputs[2],g[50].inputs[1],128,24,24,128);
+    dmp(e,B.s3_b,B.s3_pool,128,24,24,256);
+    // Stage 4
+    dc(e,B.s3_b,B.s4_dw_ds,null,g[53].inputs[1],g[53].inputs[2],null,128,24,24,128,12,12,5,5,2,2,1,1,128);
+    dc(e,B.s4_dw_ds,B.s4_a,B.s3_pool,g[54].inputs[1],g[54].inputs[2],g[56].inputs[1],128,12,12,256,12,12,1,1,1,1,0,0,1);
+    rb(e,B.s4_a,B.s4_dw,B.s4_b,B.s4_a,g[57].inputs[1],g[57].inputs[2],g[58].inputs[1],g[58].inputs[2],g[60].inputs[1],256,12,12,256);
+    rb(e,B.s4_b,B.s4_dw,B.s4_a,B.s4_b,g[61].inputs[1],g[61].inputs[2],g[62].inputs[1],g[62].inputs[2],g[64].inputs[1],256,12,12,256);
+    rb(e,B.s4_a,B.s4_dw,B.s4_b,B.s4_a,g[65].inputs[1],g[65].inputs[2],g[66].inputs[1],g[66].inputs[2],g[68].inputs[1],256,12,12,256);
+    dmp(e,B.s4_b,B.s4_pool,256,12,12,256);
+    // Stage 5
+    dc(e,B.s4_b,B.s5_dw,null,g[70].inputs[1],g[70].inputs[2],null,256,12,12,256,6,6,5,5,2,2,1,1,256);
+    dc(e,B.s5_dw,B.s5_a,B.s4_pool,g[71].inputs[1],g[71].inputs[2],g[73].inputs[1],256,6,6,256,6,6,1,1,1,1,0,0,1);
+    rb(e,B.s5_a,B.s5_dw,B.s5_b,B.s5_a,g[74].inputs[1],g[74].inputs[2],g[75].inputs[1],g[75].inputs[2],g[77].inputs[1],256,6,6,256);
+    rb(e,B.s5_b,B.s5_dw,B.s5_a,B.s5_b,g[78].inputs[1],g[78].inputs[2],g[79].inputs[1],g[79].inputs[2],g[81].inputs[1],256,6,6,256);
+    rb(e,B.s5_a,B.s5_dw,B.s5_b,B.s5_a,g[82].inputs[1],g[82].inputs[2],g[83].inputs[1],g[83].inputs[2],g[85].inputs[1],256,6,6,256);
+    // FPN1
+    dr(e,B.s5_b,B.fpn1_up,256,6,6);
+    dc(e,B.fpn1_up,B.fpn1_a,B.s4_b,g[87].inputs[1],g[87].inputs[2],g[88].inputs[1],256,12,12,256,12,12,1,1,1,1,0,0,1);
+    rb(e,B.fpn1_a,B.fpn1_dw,B.fpn1_b,B.fpn1_a,g[90].inputs[1],g[90].inputs[2],g[91].inputs[1],g[91].inputs[2],g[93].inputs[1],256,12,12,256);
+    rb(e,B.fpn1_b,B.fpn1_dw,B.fpn1_a,B.fpn1_b,g[94].inputs[1],g[94].inputs[2],g[95].inputs[1],g[95].inputs[2],g[97].inputs[1],256,12,12,256);
+    dc(e,B.fpn1_a,B.reg_16,null,g[98].inputs[1],g[98].inputs[2],null,256,12,12,108,12,12,1,1,1,1,0,0,1);
+    dc(e,B.fpn1_a,B.cls_16,null,g[101].inputs[1],g[101].inputs[2],null,256,12,12,6,12,12,1,1,1,1,0,0,1);
+    // FPN2
+    dr(e,B.fpn1_a,B.fpn2_up,256,12,12);
+    dc(e,B.fpn2_up,B.fpn2_a,B.s3_b,g[105].inputs[1],g[105].inputs[2],g[106].inputs[1],256,24,24,128,24,24,1,1,1,1,0,0,1);
+    rb(e,B.fpn2_a,B.fpn2_dw,B.fpn2_b,B.fpn2_a,g[108].inputs[1],g[108].inputs[2],g[109].inputs[1],g[109].inputs[2],g[111].inputs[1],128,24,24,128);
+    rb(e,B.fpn2_b,B.fpn2_dw,B.fpn2_a,B.fpn2_b,g[112].inputs[1],g[112].inputs[2],g[113].inputs[1],g[113].inputs[2],g[115].inputs[1],128,24,24,128);
+    dc(e,B.fpn2_a,B.reg_8,null,g[116].inputs[1],g[116].inputs[2],null,128,24,24,36,24,24,1,1,1,1,0,0,1);
+    dc(e,B.fpn2_a,B.cls_8,null,g[120].inputs[1],g[120].inputs[2],null,128,24,24,2,24,24,1,1,1,1,0,0,1);
+    device.queue.submit([e.finish()]);
+  }
+
+  log('Buffers allocated, running benchmark...\n');
+
+  // ============================================================
+  // BENCHMARK: Pure WGSL engine
+  // ============================================================
+  for (let i = 0; i < 5; i++) { runPipeline(); await device.queue.onSubmittedWorkDone(); }
+  const t0 = performance.now();
+  for (let i = 0; i < N; i++) { runPipeline(); await device.queue.onSubmittedWorkDone(); }
+  const wgslTime = (performance.now() - t0) / N;
+
+  log(`Pure WGSL engine:  ${wgslTime.toFixed(2)} ms/inference`);
+
+  // ============================================================
+  // BENCHMARK: ORT WebGPU
+  // ============================================================
+  let ortGpuTime = 'N/A';
+  try {
+    const ort = await import('../vendor/onnxruntime-web/ort.webgpu.min.mjs');
+    ort.env.wasm.numThreads = 1; ort.env.wasm.proxy = false;
+    const sess = await ort.InferenceSession.create('../models/palm_detection_lite.onnx', { executionProviders: ['webgpu'] });
+    const tensor = new ort.Tensor('float32', new Float32Array(192*192*3).fill(0.5), [1, 192, 192, 3]);
+    for (let i = 0; i < 5; i++) await sess.run({ input_1: tensor });
+    const ot0 = performance.now();
+    for (let i = 0; i < N; i++) await sess.run({ input_1: tensor });
+    ortGpuTime = ((performance.now() - ot0) / N).toFixed(2);
+  } catch (e) { ortGpuTime = 'error: ' + e.message; }
+
+  log(`ORT WebGPU:        ${ortGpuTime} ms/inference`);
+
+  // ============================================================
+  // BENCHMARK: ORT WASM (CPU)
+  // ============================================================
+  let ortCpuTime = 'N/A';
+  try {
+    const ort = await import('../vendor/onnxruntime-web/ort.webgpu.min.mjs');
+    ort.env.wasm.numThreads = 1; ort.env.wasm.proxy = false;
+    const sess = await ort.InferenceSession.create('../models/palm_detection_lite.onnx', { executionProviders: ['wasm'] });
+    const tensor = new ort.Tensor('float32', new Float32Array(192*192*3).fill(0.5), [1, 192, 192, 3]);
+    for (let i = 0; i < 5; i++) await sess.run({ input_1: tensor });
+    const ot0 = performance.now();
+    for (let i = 0; i < N; i++) await sess.run({ input_1: tensor });
+    ortCpuTime = ((performance.now() - ot0) / N).toFixed(2);
+  } catch (e) { ortCpuTime = 'error: ' + e.message; }
+
+  log(`ORT WASM (CPU):    ${ortCpuTime} ms/inference`);
+
+  // ============================================================
+  // Summary
+  // ============================================================
+  log(`\n${N} iterations, warmup excluded`);
+  if (!String(ortGpuTime).startsWith('error') && !String(ortGpuTime).startsWith('N')) {
+    log(`WGSL vs ORT-GPU:   ${(parseFloat(ortGpuTime) / wgslTime).toFixed(1)}x faster`);
+  }
+  if (!String(ortCpuTime).startsWith('error') && !String(ortCpuTime).startsWith('N')) {
+    log(`WGSL vs ORT-CPU:   ${(parseFloat(ortCpuTime) / wgslTime).toFixed(1)}x faster`);
+  }
+  log('\n============================');
+  log('done');
+
+} catch (e) {
+  log('ERROR: ' + e.message + '\n' + (e.stack || ''));
+}
+})();
+</script>
+</body>
+</html>
