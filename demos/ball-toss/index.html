@@ -195,6 +195,7 @@
     <option value="1">1</option>
     <option value="2" selected>2</option>
   </select>
+  <button id="reset-cubes-btn" style="margin-left:10px; background:#222; color:#4fc3f7; border:1px solid #444; border-radius:4px; padding:2px 10px; font-size:0.9rem; cursor:pointer;">Reset Cubes</button>
 </div>
 
 <div id="filter-controls">
@@ -430,6 +431,29 @@ function spawnCubes() {
   scene.add(cubesMesh);
 }
 spawnCubes();
+
+document.getElementById('reset-cubes-btn').addEventListener('click', () => {
+  // Clear all in-flight projectiles
+  for (const p of projectiles) {
+    scene.remove(p.mesh);
+    p.mesh.geometry.dispose();
+    p.mesh.material.dispose();
+  }
+  projectiles.length = 0;
+  // Clear any held balls
+  for (const hs of handStates) {
+    if (hs.heldBall) {
+      scene.remove(hs.heldBall.mesh);
+      hs.heldBall.mesh.geometry.dispose();
+      hs.heldBall.mat.dispose();
+      hs.heldBall = null;
+    }
+  }
+  // Reset win state and respawn
+  winShowing = false;
+  document.getElementById('winner').style.display = 'none';
+  spawnCubes();
+});
 
 // Projectile pool
 const projectiles = [];
@@ -952,6 +976,7 @@ let faceCropCanvas = null;          // reusable OffscreenCanvas for black-padded
 let faceRoiState = false;           // sticky: is auto-mode currently in crop state? Hysteresis below.
 
 function handleFaceResult(face) {
+  if (!handleFaceResult._logged) { handleFaceResult._logged = true; console.log('[lifecycle] handleFaceResult first call'); }
   if (!face) return;
   const now = performance.now();
   if (face.bbox && lastFacePos && now - lastFacePos.t < FACE_RECOVERY_MS) {
@@ -1046,6 +1071,7 @@ function handleFaceResult(face) {
 }
 
 function handleHandResult(landmarks) {
+  if (!handleHandResult._logged) { handleHandResult._logged = true; console.log('[lifecycle] handleHandResult first call'); }
   const now = performance.now();
   const visibleHandCount = landmarks ? Math.min(landmarks.length, 2) : 0;
   if (visibleHandCount > 0) {
@@ -1855,6 +1881,11 @@ function animate(timestamp) {
   // HUD -- throttle to 10fps and use last-seen timeouts to smooth async ML gaps
   if (!animate._lastHud || now - animate._lastHud > 100) {
     animate._lastHud = now;
+    if (!animate._hudLogged) {
+      animate._hudLogged = true;
+      const hands = currentHands.filter(h => h).length;
+      console.log(`[lifecycle] first HUD update: headLastSeen=${headLastSeen.toFixed(0)} headPos=(${headPos.x.toFixed(3)},${headPos.y.toFixed(3)},${headPos.z.toFixed(3)}) hands=${hands} backend=${activeBackend}`);
+    }
     const headEl = document.getElementById('head-pos');
     const headDetected = now - headLastSeen <= HEAD_TIMEOUT;
     if (headDetected) {
@@ -1907,12 +1938,12 @@ function updateStatus() {
     if (!faceReady) parts.push('Loading face model...');
     if (!handReady) parts.push('Loading hand model...');
     if (parts.length === 0) {
-      statusEl.textContent = 'Move your head to shift perspective. Pinch and release to fire.';
-      document.getElementById('hud').style.display = 'block'; document.getElementById('self-view-btn').style.display = 'block'; initSelfViewBtn();
-      document.getElementById('controls').style.display = 'block';
-      document.getElementById('filter-controls').style.display = 'block';
-      document.getElementById('backend-label').textContent = 'MediaPipe';
-    } else {
+      // Don't reveal UI during preload — wait until camera is actually live.
+      // revealSceneUI() handles showing HUD/controls after the user clicks Start.
+      if (video.srcObject) {
+        document.getElementById('backend-label').textContent = 'MediaPipe';
+      }
+    } else if (video.srcObject) {
       statusEl.textContent = parts.join(' ');
     }
   }

@@ -375,6 +375,7 @@ Three intertwined questions about model file delivery:
 These three should probably be tackled together — once we have a caching layer, the CDN choice and the toggle naturally fall out.
 
 ### Demo polish
+- **Proper hand Z-axis depth:** Currently the hand wireframe Z position is a rough offset from camera (`camera.z - 6 + lm.z * -3`). The hand landmark model outputs a real Z coordinate per joint, but we're only using it as a small perturbation. The fix: map the landmark Z values to actual world-space depth so that (a) the hand moves along the Z axis as you push it toward/away from the camera, (b) the wireframe size stays fixed in world units so it gets smaller with distance (perspective projection handles this naturally once Z is correct), and (c) the held ball and throw velocity incorporate real depth. This requires calibrating the landmark model's Z output range to the Three.js scene's coordinate system. The parallax compensation in `landmarkToScene` (the `pFrac = handZ / camera.z` factor) already handles the camera offset correctly — just the Z mapping needs work.
 - Rename `demos/ball-toss/` to whatever the game ends up being called.
 - Build out the actual ball-toss game mechanics (currently the demo throws projectiles when you pinch; the full game is TBD).
 - Add a "blendshape display" toggle to the hub (face blendshape worker already exists in `src/face-blendshape-worker.js`; just needs UI).
