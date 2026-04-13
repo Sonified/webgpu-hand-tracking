@@ -261,8 +261,9 @@
 
 <video id="webcam" autoplay playsinline style="display:none;"></video>
 
-<!-- Enable crossOriginIsolated on hosts without COOP/COEP headers (e.g. GitHub Pages) -->
-<script src="coi-serviceworker.js"></script>
+<!-- Enable crossOriginIsolated on hosts without COOP/COEP headers (e.g. GitHub Pages).
+     Registered from the repo root so its scope covers /src/ and /vendor/ (worker files). -->
+<script src="../../coi-serviceworker.js"></script>
 
 <script type="importmap">
 { "imports": {
