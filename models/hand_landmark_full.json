@@ -1,0 +1,3370 @@
+{
+  "model": "hand_landmark_full",
+  "input": {
+    "name": "input_1",
+    "shape": [
+      1,
+      224,
+      224,
+      3
+    ]
+  },
+  "outputs": [
+    {
+      "name": "Identity",
+      "shape": [
+        1,
+        63
+      ]
+    },
+    {
+      "name": "Identity_1",
+      "shape": [
+        1,
+        1
+      ]
+    },
+    {
+      "name": "Identity_2",
+      "shape": [
+        1,
+        1
+      ]
+    },
+    {
+      "name": "Identity_3",
+      "shape": [
+        1,
+        63
+      ]
+    }
+  ],
+  "weight_buffer": {
+    "total_floats": 1011716,
+    "total_bytes": 4046864
+  },
+  "weights": {
+    "const_fold_opt__592": {
+      "shape": [
+        384,
+        1,
+        5,
+        5
+      ],
+      "offset": 0,
+      "length": 9600,
+      "byte_offset": 0,
+      "byte_size": 38400
+    },
+    "const_fold_opt__589": {
+      "shape": [
+        672,
+        1,
+        5,
+        5
+      ],
+      "offset": 9600,
+      "length": 16800,
+      "byte_offset": 38400,
+      "byte_size": 67200
+    },
+    "const_fold_opt__587": {
+      "shape": [
+        96,
+        1,
+        3,
+        3
+      ],
+      "offset": 26400,
+      "length": 864,
+      "byte_offset": 105600,
+      "byte_size": 3456
+    },
+    "const_fold_opt__585": {
+      "shape": [
+        672,
+        1
+      ],
+      "offset": 27264,
+      "length": 672,
+      "byte_offset": 109056,
+      "byte_size": 2688
+    },
+    "const_fold_opt__584": {
+      "shape": [
+        144,
+        1,
+        3,
+        3
+      ],
+      "offset": 27936,
+      "length": 1296,
+      "byte_offset": 111744,
+      "byte_size": 5184
+    },
+    "const_fold_opt__582": {
+      "shape": [
+        112,
+        672,
+        1,
+        1
+      ],
+      "offset": 29232,
+      "length": 75264,
+      "byte_offset": 116928,
+      "byte_size": 301056
+    },
+    "const_fold_opt__580": {
+      "shape": [
+        384,
+        1,
+        5,
+        5
+      ],
+      "offset": 104496,
+      "length": 9600,
+      "byte_offset": 417984,
+      "byte_size": 38400
+    },
+    "const_fold_opt__578": {
+      "shape": [
+        48,
+        144,
+        1,
+        1
+      ],
+      "offset": 114096,
+      "length": 6912,
+      "byte_offset": 456384,
+      "byte_size": 27648
+    },
+    "const_fold_opt__576": {
+      "shape": [
+        288
+      ],
+      "offset": 121008,
+      "length": 288,
+      "byte_offset": 484032,
+      "byte_size": 1152
+    },
+    "const_fold_opt__575": {
+      "shape": [
+        96,
+        16,
+        1,
+        1
+      ],
+      "offset": 121296,
+      "length": 1536,
+      "byte_offset": 485184,
+      "byte_size": 6144
+    },
+    "const_fold_opt__574": {
+      "shape": [
+        144,
+        24,
+        1,
+        1
+      ],
+      "offset": 122832,
+      "length": 3456,
+      "byte_offset": 491328,
+      "byte_size": 13824
+    },
+    "const_fold_opt__572": {
+      "shape": [
+        672,
+        1,
+        3,
+        3
+      ],
+      "offset": 126288,
+      "length": 6048,
+      "byte_offset": 505152,
+      "byte_size": 24192
+    },
+    "const_fold_opt__569": {
+      "shape": [
+        24,
+        1,
+        3,
+        3
+      ],
+      "offset": 132336,
+      "length": 216,
+      "byte_offset": 529344,
+      "byte_size": 864
+    },
+    "const_fold_opt__567": {
+      "shape": [
+        144,
+        24,
+        1,
+        1
+      ],
+      "offset": 132552,
+      "length": 3456,
+      "byte_offset": 530208,
+      "byte_size": 13824
+    },
+    "const_fold_opt__565": {
+      "shape": [
+        24,
+        96,
+        1,
+        1
+      ],
+      "offset": 136008,
+      "length": 2304,
+      "byte_offset": 544032,
+      "byte_size": 9216
+    },
+    "const_fold_opt__564": {
+      "shape": [
+        144,
+        1,
+        5,
+        5
+      ],
+      "offset": 138312,
+      "length": 3600,
+      "byte_offset": 553248,
+      "byte_size": 14400
+    },
+    "const_fold_opt__561": {
+      "shape": [
+        288,
+        1,
+        3,
+        3
+      ],
+      "offset": 141912,
+      "length": 2592,
+      "byte_offset": 567648,
+      "byte_size": 10368
+    },
+    "const_fold_opt__559": {
+      "shape": [
+        288,
+        1,
+        3,
+        3
+      ],
+      "offset": 144504,
+      "length": 2592,
+      "byte_offset": 578016,
+      "byte_size": 10368
+    },
+    "const_fold_opt__555": {
+      "shape": [
+        288,
+        1,
+        5,
+        5
+      ],
+      "offset": 147096,
+      "length": 7200,
+      "byte_offset": 588384,
+      "byte_size": 28800
+    },
+    "const_fold_opt__554": {
+      "shape": [
+        288,
+        48,
+        1,
+        1
+      ],
+      "offset": 154296,
+      "length": 13824,
+      "byte_offset": 617184,
+      "byte_size": 55296
+    },
+    "const_fold_opt__551": {
+      "shape": [
+        384,
+        64,
+        1,
+        1
+      ],
+      "offset": 168120,
+      "length": 24576,
+      "byte_offset": 672480,
+      "byte_size": 98304
+    },
+    "const_fold_opt__548": {
+      "shape": [
+        288
+      ],
+      "offset": 192696,
+      "length": 288,
+      "byte_offset": 770784,
+      "byte_size": 1152
+    },
+    "const_fold_opt__547": {
+      "shape": [
+        64,
+        16,
+        1,
+        1
+      ],
+      "offset": 192984,
+      "length": 1024,
+      "byte_offset": 771936,
+      "byte_size": 4096
+    },
+    "const_fold_opt__545": {
+      "shape": [
+        672,
+        1,
+        5,
+        5
+      ],
+      "offset": 194008,
+      "length": 16800,
+      "byte_offset": 776032,
+      "byte_size": 67200
+    },
+    "const_fold_opt__544": {
+      "shape": [
+        96
+      ],
+      "offset": 210808,
+      "length": 96,
+      "byte_offset": 843232,
+      "byte_size": 384
+    },
+    "const_fold_opt__542": {
+      "shape": [
+        384,
+        64,
+        1,
+        1
+      ],
+      "offset": 210904,
+      "length": 24576,
+      "byte_offset": 843616,
+      "byte_size": 98304
+    },
+    "const_fold_opt__538": {
+      "shape": [
+        48,
+        288,
+        1,
+        1
+      ],
+      "offset": 235480,
+      "length": 13824,
+      "byte_offset": 941920,
+      "byte_size": 55296
+    },
+    "const_fold_opt__535": {
+      "shape": [
+        288
+      ],
+      "offset": 249304,
+      "length": 288,
+      "byte_offset": 997216,
+      "byte_size": 1152
+    },
+    "const_fold_opt__534": {
+      "shape": [
+        64
+      ],
+      "offset": 249592,
+      "length": 64,
+      "byte_offset": 998368,
+      "byte_size": 256
+    },
+    "const_fold_opt__533": {
+      "shape": [
+        16,
+        96,
+        1,
+        1
+      ],
+      "offset": 249656,
+      "length": 1536,
+      "byte_offset": 998624,
+      "byte_size": 6144
+    },
+    "const_fold_opt__528": {
+      "shape": [
+        16,
+        24,
+        1,
+        1
+      ],
+      "offset": 251192,
+      "length": 384,
+      "byte_offset": 1004768,
+      "byte_size": 1536
+    },
+    "const_fold_opt__525": {
+      "shape": [
+        48
+      ],
+      "offset": 251576,
+      "length": 48,
+      "byte_offset": 1006304,
+      "byte_size": 192
+    },
+    "const_fold_opt__524": {
+      "shape": [
+        48,
+        288,
+        1,
+        1
+      ],
+      "offset": 251624,
+      "length": 13824,
+      "byte_offset": 1006496,
+      "byte_size": 55296
+    },
+    "const_fold_opt__523": {
+      "shape": [
+        672,
+        1
+      ],
+      "offset": 265448,
+      "length": 672,
+      "byte_offset": 1061792,
+      "byte_size": 2688
+    },
+    "const_fold_opt__522": {
+      "shape": [
+        64,
+        1,
+        3,
+        3
+      ],
+      "offset": 266120,
+      "length": 576,
+      "byte_offset": 1064480,
+      "byte_size": 2304
+    },
+    "const_fold_opt__520": {
+      "shape": [
+        96,
+        1,
+        5,
+        5
+      ],
+      "offset": 266696,
+      "length": 2400,
+      "byte_offset": 1066784,
+      "byte_size": 9600
+    },
+    "const_fold_opt__518": {
+      "shape": [
+        64
+      ],
+      "offset": 269096,
+      "length": 64,
+      "byte_offset": 1076384,
+      "byte_size": 256
+    },
+    "const_fold_opt__515": {
+      "shape": [
+        64,
+        384,
+        1,
+        1
+      ],
+      "offset": 269160,
+      "length": 24576,
+      "byte_offset": 1076640,
+      "byte_size": 98304
+    },
+    "const_fold_opt__511": {
+      "shape": [
+        384
+      ],
+      "offset": 293736,
+      "length": 384,
+      "byte_offset": 1174944,
+      "byte_size": 1536
+    },
+    "const_fold_opt__510": {
+      "shape": [
+        288,
+        48,
+        1,
+        1
+      ],
+      "offset": 294120,
+      "length": 13824,
+      "byte_offset": 1176480,
+      "byte_size": 55296
+    },
+    "const_fold_opt__507": {
+      "shape": [
+        672
+      ],
+      "offset": 307944,
+      "length": 672,
+      "byte_offset": 1231776,
+      "byte_size": 2688
+    },
+    "const_fold_opt__506": {
+      "shape": [
+        672
+      ],
+      "offset": 308616,
+      "length": 672,
+      "byte_offset": 1234464,
+      "byte_size": 2688
+    },
+    "const_fold_opt__505": {
+      "shape": [
+        672,
+        112,
+        1,
+        1
+      ],
+      "offset": 309288,
+      "length": 75264,
+      "byte_offset": 1237152,
+      "byte_size": 301056
+    },
+    "const_fold_opt__502": {
+      "shape": [
+        112,
+        672,
+        1,
+        1
+      ],
+      "offset": 384552,
+      "length": 75264,
+      "byte_offset": 1538208,
+      "byte_size": 301056
+    },
+    "const_fold_opt__501": {
+      "shape": [
+        64
+      ],
+      "offset": 459816,
+      "length": 64,
+      "byte_offset": 1839264,
+      "byte_size": 256
+    },
+    "const_fold_opt__500": {
+      "shape": [
+        64,
+        288,
+        1,
+        1
+      ],
+      "offset": 459880,
+      "length": 18432,
+      "byte_offset": 1839520,
+      "byte_size": 73728
+    },
+    "const_fold_opt__498": {
+      "shape": [
+        384
+      ],
+      "offset": 478312,
+      "length": 384,
+      "byte_offset": 1913248,
+      "byte_size": 1536
+    },
+    "const_fold_opt__496": {
+      "shape": [
+        384
+      ],
+      "offset": 478696,
+      "length": 384,
+      "byte_offset": 1914784,
+      "byte_size": 1536
+    },
+    "const_fold_opt__493": {
+      "shape": [
+        64
+      ],
+      "offset": 479080,
+      "length": 64,
+      "byte_offset": 1916320,
+      "byte_size": 256
+    },
+    "const_fold_opt__492": {
+      "shape": [
+        64,
+        384,
+        1,
+        1
+      ],
+      "offset": 479144,
+      "length": 24576,
+      "byte_offset": 1916576,
+      "byte_size": 98304
+    },
+    "const_fold_opt__490": {
+      "shape": [
+        64
+      ],
+      "offset": 503720,
+      "length": 64,
+      "byte_offset": 2014880,
+      "byte_size": 256
+    },
+    "const_fold_opt__489": {
+      "shape": [
+        672,
+        63
+      ],
+      "offset": 503784,
+      "length": 42336,
+      "byte_offset": 2015136,
+      "byte_size": 169344
+    },
+    "const_fold_opt__487": {
+      "shape": [
+        24,
+        144,
+        1,
+        1
+      ],
+      "offset": 546120,
+      "length": 3456,
+      "byte_offset": 2184480,
+      "byte_size": 13824
+    },
+    "const_fold_opt__484": {
+      "shape": [
+        144
+      ],
+      "offset": 549576,
+      "length": 144,
+      "byte_offset": 2198304,
+      "byte_size": 576
+    },
+    "const_fold_opt__483": {
+      "shape": [
+        672
+      ],
+      "offset": 549720,
+      "length": 672,
+      "byte_offset": 2198880,
+      "byte_size": 2688
+    },
+    "const_fold_opt__481": {
+      "shape": [
+        144
+      ],
+      "offset": 550392,
+      "length": 144,
+      "byte_offset": 2201568,
+      "byte_size": 576
+    },
+    "const_fold_opt__480": {
+      "shape": [
+        672
+      ],
+      "offset": 550536,
+      "length": 672,
+      "byte_offset": 2202144,
+      "byte_size": 2688
+    },
+    "const_fold_opt__477": {
+      "shape": [
+        48
+      ],
+      "offset": 551208,
+      "length": 48,
+      "byte_offset": 2204832,
+      "byte_size": 192
+    },
+    "const_fold_opt__475": {
+      "shape": [
+        384,
+        1,
+        5,
+        5
+      ],
+      "offset": 551256,
+      "length": 9600,
+      "byte_offset": 2205024,
+      "byte_size": 38400
+    },
+    "const_fold_opt__474": {
+      "shape": [
+        16
+      ],
+      "offset": 560856,
+      "length": 16,
+      "byte_offset": 2243424,
+      "byte_size": 64
+    },
+    "const_fold_opt__470": {
+      "shape": [
+        672,
+        1,
+        5,
+        5
+      ],
+      "offset": 560872,
+      "length": 16800,
+      "byte_offset": 2243488,
+      "byte_size": 67200
+    },
+    "const_fold_opt__469": {
+      "shape": [
+        16,
+        64,
+        1,
+        1
+      ],
+      "offset": 577672,
+      "length": 1024,
+      "byte_offset": 2310688,
+      "byte_size": 4096
+    },
+    "const_fold_opt__464": {
+      "shape": [
+        16
+      ],
+      "offset": 578696,
+      "length": 16,
+      "byte_offset": 2314784,
+      "byte_size": 64
+    },
+    "const_fold_opt__459": {
+      "shape": [
+        288
+      ],
+      "offset": 578712,
+      "length": 288,
+      "byte_offset": 2314848,
+      "byte_size": 1152
+    },
+    "const_fold_opt__458": {
+      "shape": [
+        288
+      ],
+      "offset": 579000,
+      "length": 288,
+      "byte_offset": 2316000,
+      "byte_size": 1152
+    },
+    "const_fold_opt__455": {
+      "shape": [
+        48
+      ],
+      "offset": 579288,
+      "length": 48,
+      "byte_offset": 2317152,
+      "byte_size": 192
+    },
+    "const_fold_opt__454": {
+      "shape": [
+        288
+      ],
+      "offset": 579336,
+      "length": 288,
+      "byte_offset": 2317344,
+      "byte_size": 1152
+    },
+    "const_fold_opt__451": {
+      "shape": [
+        96
+      ],
+      "offset": 579624,
+      "length": 96,
+      "byte_offset": 2318496,
+      "byte_size": 384
+    },
+    "const_fold_opt__450": {
+      "shape": [
+        112,
+        672,
+        1,
+        1
+      ],
+      "offset": 579720,
+      "length": 75264,
+      "byte_offset": 2318880,
+      "byte_size": 301056
+    },
+    "const_fold_opt__447": {
+      "shape": [
+        672
+      ],
+      "offset": 654984,
+      "length": 672,
+      "byte_offset": 2619936,
+      "byte_size": 2688
+    },
+    "const_fold_opt__446": {
+      "shape": [
+        16
+      ],
+      "offset": 655656,
+      "length": 16,
+      "byte_offset": 2622624,
+      "byte_size": 64
+    },
+    "const_fold_opt__445": {
+      "shape": [
+        24
+      ],
+      "offset": 655672,
+      "length": 24,
+      "byte_offset": 2622688,
+      "byte_size": 96
+    },
+    "const_fold_opt__443": {
+      "shape": [
+        24
+      ],
+      "offset": 655696,
+      "length": 24,
+      "byte_offset": 2622784,
+      "byte_size": 96
+    },
+    "const_fold_opt__442": {
+      "shape": [
+        96
+      ],
+      "offset": 655720,
+      "length": 96,
+      "byte_offset": 2622880,
+      "byte_size": 384
+    },
+    "const_fold_opt__441": {
+      "shape": [
+        24,
+        3,
+        3,
+        3
+      ],
+      "offset": 655816,
+      "length": 648,
+      "byte_offset": 2623264,
+      "byte_size": 2592
+    },
+    "const_fold_opt__438": {
+      "shape": [
+        96
+      ],
+      "offset": 656464,
+      "length": 96,
+      "byte_offset": 2625856,
+      "byte_size": 384
+    },
+    "const_fold_opt__436": {
+      "shape": [
+        384
+      ],
+      "offset": 656560,
+      "length": 384,
+      "byte_offset": 2626240,
+      "byte_size": 1536
+    },
+    "const_fold_opt__434": {
+      "shape": [
+        384
+      ],
+      "offset": 656944,
+      "length": 384,
+      "byte_offset": 2627776,
+      "byte_size": 1536
+    },
+    "const_fold_opt__433": {
+      "shape": [
+        384,
+        64,
+        1,
+        1
+      ],
+      "offset": 657328,
+      "length": 24576,
+      "byte_offset": 2629312,
+      "byte_size": 98304
+    },
+    "const_fold_opt__432": {
+      "shape": [
+        672,
+        63
+      ],
+      "offset": 681904,
+      "length": 42336,
+      "byte_offset": 2727616,
+      "byte_size": 169344
+    },
+    "const_fold_opt__427": {
+      "shape": [
+        672
+      ],
+      "offset": 724240,
+      "length": 672,
+      "byte_offset": 2896960,
+      "byte_size": 2688
+    },
+    "const_fold_opt__424": {
+      "shape": [
+        24
+      ],
+      "offset": 724912,
+      "length": 24,
+      "byte_offset": 2899648,
+      "byte_size": 96
+    },
+    "const_fold_opt__423": {
+      "shape": [
+        672
+      ],
+      "offset": 724936,
+      "length": 672,
+      "byte_offset": 2899744,
+      "byte_size": 2688
+    },
+    "const_fold_opt__420": {
+      "shape": [
+        144
+      ],
+      "offset": 725608,
+      "length": 144,
+      "byte_offset": 2902432,
+      "byte_size": 576
+    },
+    "const_fold_opt__419": {
+      "shape": [
+        288,
+        48,
+        1,
+        1
+      ],
+      "offset": 725752,
+      "length": 13824,
+      "byte_offset": 2903008,
+      "byte_size": 55296
+    },
+    "const_fold_opt__418": {
+      "shape": [
+        1
+      ],
+      "offset": 739576,
+      "length": 1,
+      "byte_offset": 2958304,
+      "byte_size": 4
+    },
+    "const_fold_opt__416": {
+      "shape": [
+        144
+      ],
+      "offset": 739577,
+      "length": 144,
+      "byte_offset": 2958308,
+      "byte_size": 576
+    },
+    "const_fold_opt__414": {
+      "shape": [
+        384
+      ],
+      "offset": 739721,
+      "length": 384,
+      "byte_offset": 2958884,
+      "byte_size": 1536
+    },
+    "const_fold_opt__411": {
+      "shape": [
+        112
+      ],
+      "offset": 740105,
+      "length": 112,
+      "byte_offset": 2960420,
+      "byte_size": 448
+    },
+    "const_fold_opt__410": {
+      "shape": [
+        1
+      ],
+      "offset": 740217,
+      "length": 1,
+      "byte_offset": 2960868,
+      "byte_size": 4
+    },
+    "const_fold_opt__409": {
+      "shape": [
+        24
+      ],
+      "offset": 740218,
+      "length": 24,
+      "byte_offset": 2960872,
+      "byte_size": 96
+    },
+    "const_fold_opt__406": {
+      "shape": [
+        112
+      ],
+      "offset": 740242,
+      "length": 112,
+      "byte_offset": 2960968,
+      "byte_size": 448
+    },
+    "const_fold_opt__405": {
+      "shape": [
+        112,
+        384,
+        1,
+        1
+      ],
+      "offset": 740354,
+      "length": 43008,
+      "byte_offset": 2961416,
+      "byte_size": 172032
+    },
+    "const_fold_opt__404": {
+      "shape": [
+        63
+      ],
+      "offset": 783362,
+      "length": 63,
+      "byte_offset": 3133448,
+      "byte_size": 252
+    },
+    "const_fold_opt__401": {
+      "shape": [
+        63
+      ],
+      "offset": 783425,
+      "length": 63,
+      "byte_offset": 3133700,
+      "byte_size": 252
+    },
+    "const_fold_opt__400": {
+      "shape": [
+        672
+      ],
+      "offset": 783488,
+      "length": 672,
+      "byte_offset": 3133952,
+      "byte_size": 2688
+    },
+    "const_fold_opt__396": {
+      "shape": [
+        112
+      ],
+      "offset": 784160,
+      "length": 112,
+      "byte_offset": 3136640,
+      "byte_size": 448
+    },
+    "const_fold_opt__393": {
+      "shape": [
+        672,
+        112,
+        1,
+        1
+      ],
+      "offset": 784272,
+      "length": 75264,
+      "byte_offset": 3137088,
+      "byte_size": 301056
+    },
+    "const_fold_opt__389": {
+      "shape": [
+        112
+      ],
+      "offset": 859536,
+      "length": 112,
+      "byte_offset": 3438144,
+      "byte_size": 448
+    },
+    "const_fold_opt__387": {
+      "shape": [
+        672,
+        112,
+        1,
+        1
+      ],
+      "offset": 859648,
+      "length": 75264,
+      "byte_offset": 3438592,
+      "byte_size": 301056
+    },
+    "const_fold_opt__382": {
+      "shape": [
+        672,
+        112,
+        1,
+        1
+      ],
+      "offset": 934912,
+      "length": 75264,
+      "byte_offset": 3739648,
+      "byte_size": 301056
+    },
+    "const_fold_opt__379": {
+      "shape": [
+        96,
+        16,
+        1,
+        1
+      ],
+      "offset": 1010176,
+      "length": 1536,
+      "byte_offset": 4040704,
+      "byte_size": 6144
+    },
+    "const_axes__593": {
+      "shape": [
+        2
+      ],
+      "offset": 1011712,
+      "length": 2,
+      "byte_offset": 4046848,
+      "byte_size": 8
+    },
+    "Relu6__76_min__302": {
+      "shape": [],
+      "offset": 1011714,
+      "length": 1,
+      "byte_offset": 4046856,
+      "byte_size": 4
+    },
+    "Relu6__73_max__295": {
+      "shape": [],
+      "offset": 1011715,
+      "length": 1,
+      "byte_offset": 4046860,
+      "byte_size": 4
+    }
+  },
+  "graph": [
+    {
+      "op": "Transpose",
+      "name": "model_1/model/re_lu/Relu6;model_1/model/batch_normalization/FusedBatchNormV3;model_1/model/batch_normalization_1/FusedBatchNormV3;model_1/model/depthwise_conv2d/depthwise;model_1/model/conv2d_9/Conv2D;model_1/model/conv2d/Conv2D__102",
+      "inputs": [
+        "input_1"
+      ],
+      "outputs": [
+        "model_1/model/re_lu/Relu6;model_1/model/batch_normalization/FusedBatchNormV3;model_1/model/batch_normalization_1/FusedBatchNormV3;model_1/model/depthwise_conv2d/depthwise;model_1/model/conv2d_9/Conv2D;model_1/model/conv2d/Conv2D__102:0"
+      ],
+      "attrs": {
+        "perm": [
+          0,
+          3,
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu/Relu6;model_1/model/batch_normalization/FusedBatchNormV3;model_1/model/batch_normalization_1/FusedBatchNormV3;model_1/model/depthwise_conv2d/depthwise;model_1/model/conv2d_9/Conv2D;model_1/model/conv2d/Conv2D",
+      "inputs": [
+        "model_1/model/re_lu/Relu6;model_1/model/batch_normalization/FusedBatchNormV3;model_1/model/batch_normalization_1/FusedBatchNormV3;model_1/model/depthwise_conv2d/depthwise;model_1/model/conv2d_9/Conv2D;model_1/model/conv2d/Conv2D__102:0",
+        "const_fold_opt__441",
+        "const_fold_opt__445"
+      ],
+      "outputs": [
+        "model_1/model/re_lu/Relu6;model_1/model/batch_normalization/FusedBatchNormV3;model_1/model/batch_normalization_1/FusedBatchNormV3;model_1/model/depthwise_conv2d/depthwise;model_1/model/conv2d_9/Conv2D;model_1/model/conv2d/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          2,
+          2
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          3,
+          3
+        ],
+        "pads": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__11",
+      "inputs": [
+        "model_1/model/re_lu/Relu6;model_1/model/batch_normalization/FusedBatchNormV3;model_1/model/batch_normalization_1/FusedBatchNormV3;model_1/model/depthwise_conv2d/depthwise;model_1/model/conv2d_9/Conv2D;model_1/model/conv2d/Conv2D",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__11:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_1/Relu6;model_1/model/batch_normalization_1/FusedBatchNormV3;model_1/model/depthwise_conv2d/depthwise;model_1/model/conv2d_9/Conv2D",
+      "inputs": [
+        "Relu6__11:0",
+        "const_fold_opt__569",
+        "const_fold_opt__443"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_1/Relu6;model_1/model/batch_normalization_1/FusedBatchNormV3;model_1/model/depthwise_conv2d/depthwise;model_1/model/conv2d_9/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          3,
+          3
+        ],
+        "group": 24,
+        "pads": [
+          1,
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__13",
+      "inputs": [
+        "model_1/model/re_lu_1/Relu6;model_1/model/batch_normalization_1/FusedBatchNormV3;model_1/model/depthwise_conv2d/depthwise;model_1/model/conv2d_9/Conv2D",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__13:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_2/FusedBatchNormV3;model_1/model/conv2d_5/Conv2D;model_1/model/conv2d_1/Conv2D1",
+      "inputs": [
+        "Relu6__13:0",
+        "const_fold_opt__528",
+        "const_fold_opt__464"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_2/FusedBatchNormV3;model_1/model/conv2d_5/Conv2D;model_1/model/conv2d_1/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_2/Relu6;model_1/model/batch_normalization_3/FusedBatchNormV3;model_1/model/batch_normalization_4/FusedBatchNormV3;model_1/model/depthwise_conv2d_1/depthwise;model_1/model/conv2d_21/Conv2D;model_1/model/conv2d_2/Conv2D",
+      "inputs": [
+        "model_1/model/batch_normalization_2/FusedBatchNormV3;model_1/model/conv2d_5/Conv2D;model_1/model/conv2d_1/Conv2D1",
+        "const_fold_opt__547",
+        "const_fold_opt__490"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_2/Relu6;model_1/model/batch_normalization_3/FusedBatchNormV3;model_1/model/batch_normalization_4/FusedBatchNormV3;model_1/model/depthwise_conv2d_1/depthwise;model_1/model/conv2d_21/Conv2D;model_1/model/conv2d_2/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__16",
+      "inputs": [
+        "model_1/model/re_lu_2/Relu6;model_1/model/batch_normalization_3/FusedBatchNormV3;model_1/model/batch_normalization_4/FusedBatchNormV3;model_1/model/depthwise_conv2d_1/depthwise;model_1/model/conv2d_21/Conv2D;model_1/model/conv2d_2/Conv2D",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__16:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_3/Relu6;model_1/model/batch_normalization_4/FusedBatchNormV3;model_1/model/depthwise_conv2d_1/depthwise;model_1/model/conv2d_21/Conv2D",
+      "inputs": [
+        "Relu6__16:0",
+        "const_fold_opt__522",
+        "const_fold_opt__534"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_3/Relu6;model_1/model/batch_normalization_4/FusedBatchNormV3;model_1/model/depthwise_conv2d_1/depthwise;model_1/model/conv2d_21/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          2,
+          2
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          3,
+          3
+        ],
+        "group": 64,
+        "pads": [
+          0,
+          0,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__18",
+      "inputs": [
+        "model_1/model/re_lu_3/Relu6;model_1/model/batch_normalization_4/FusedBatchNormV3;model_1/model/depthwise_conv2d_1/depthwise;model_1/model/conv2d_21/Conv2D",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__18:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_5/FusedBatchNormV3;model_1/model/conv2d_5/Conv2D;model_1/model/conv2d_3/Conv2D1",
+      "inputs": [
+        "Relu6__18:0",
+        "const_fold_opt__469",
+        "const_fold_opt__474"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_5/FusedBatchNormV3;model_1/model/conv2d_5/Conv2D;model_1/model/conv2d_3/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "MaxPool",
+      "name": "model_1/model/max_pooling2d/MaxPool",
+      "inputs": [
+        "model_1/model/batch_normalization_2/FusedBatchNormV3;model_1/model/conv2d_5/Conv2D;model_1/model/conv2d_1/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/max_pooling2d/MaxPool"
+      ],
+      "attrs": {
+        "strides": [
+          2,
+          2
+        ],
+        "kernel_shape": [
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add/add",
+      "inputs": [
+        "model_1/model/batch_normalization_5/FusedBatchNormV3;model_1/model/conv2d_5/Conv2D;model_1/model/conv2d_3/Conv2D1",
+        "model_1/model/max_pooling2d/MaxPool"
+      ],
+      "outputs": [
+        "model_1/model/add/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_4/Relu6;model_1/model/batch_normalization_6/FusedBatchNormV3;model_1/model/batch_normalization_10/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d_4/Conv2D",
+      "inputs": [
+        "model_1/model/add/add",
+        "const_fold_opt__379",
+        "const_fold_opt__544"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_4/Relu6;model_1/model/batch_normalization_6/FusedBatchNormV3;model_1/model/batch_normalization_10/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d_4/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__21",
+      "inputs": [
+        "model_1/model/re_lu_4/Relu6;model_1/model/batch_normalization_6/FusedBatchNormV3;model_1/model/batch_normalization_10/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d_4/Conv2D",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__21:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_5/Relu6;model_1/model/batch_normalization_7/FusedBatchNormV3;model_1/model/batch_normalization_10/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/depthwise_conv2d_2/depthwise",
+      "inputs": [
+        "Relu6__21:0",
+        "const_fold_opt__587",
+        "const_fold_opt__451"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_5/Relu6;model_1/model/batch_normalization_7/FusedBatchNormV3;model_1/model/batch_normalization_10/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/depthwise_conv2d_2/depthwise"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          3,
+          3
+        ],
+        "group": 96,
+        "pads": [
+          1,
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__23",
+      "inputs": [
+        "model_1/model/re_lu_5/Relu6;model_1/model/batch_normalization_7/FusedBatchNormV3;model_1/model/batch_normalization_10/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/depthwise_conv2d_2/depthwise",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__23:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_8/FusedBatchNormV3;model_1/model/conv2d_5/Conv2D1",
+      "inputs": [
+        "Relu6__23:0",
+        "const_fold_opt__533",
+        "const_fold_opt__446"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_8/FusedBatchNormV3;model_1/model/conv2d_5/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_1/add",
+      "inputs": [
+        "model_1/model/batch_normalization_8/FusedBatchNormV3;model_1/model/conv2d_5/Conv2D1",
+        "model_1/model/add/add"
+      ],
+      "outputs": [
+        "model_1/model/add_1/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_6/Relu6;model_1/model/batch_normalization_9/FusedBatchNormV3;model_1/model/batch_normalization_10/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d_6/Conv2D",
+      "inputs": [
+        "model_1/model/add_1/add",
+        "const_fold_opt__575",
+        "const_fold_opt__442"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_6/Relu6;model_1/model/batch_normalization_9/FusedBatchNormV3;model_1/model/batch_normalization_10/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d_6/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__26",
+      "inputs": [
+        "model_1/model/re_lu_6/Relu6;model_1/model/batch_normalization_9/FusedBatchNormV3;model_1/model/batch_normalization_10/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise;model_1/model/conv2d_6/Conv2D",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__26:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_7/Relu6;model_1/model/batch_normalization_10/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise",
+      "inputs": [
+        "Relu6__26:0",
+        "const_fold_opt__520",
+        "const_fold_opt__438"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_7/Relu6;model_1/model/batch_normalization_10/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise"
+      ],
+      "attrs": {
+        "strides": [
+          2,
+          2
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 96,
+        "pads": [
+          1,
+          1,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__28",
+      "inputs": [
+        "model_1/model/re_lu_7/Relu6;model_1/model/batch_normalization_10/FusedBatchNormV3;model_1/model/depthwise_conv2d_3/depthwise",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__28:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_11/FusedBatchNormV3;model_1/model/conv2d_9/Conv2D;model_1/model/conv2d_7/Conv2D1",
+      "inputs": [
+        "Relu6__28:0",
+        "const_fold_opt__565",
+        "const_fold_opt__424"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_11/FusedBatchNormV3;model_1/model/conv2d_9/Conv2D;model_1/model/conv2d_7/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_8/Relu6;model_1/model/batch_normalization_12/FusedBatchNormV3;model_1/model/batch_normalization_16/FusedBatchNormV3;model_1/model/depthwise_conv2d_5/depthwise;model_1/model/conv2d_8/Conv2D",
+      "inputs": [
+        "model_1/model/batch_normalization_11/FusedBatchNormV3;model_1/model/conv2d_9/Conv2D;model_1/model/conv2d_7/Conv2D1",
+        "const_fold_opt__574",
+        "const_fold_opt__420"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_8/Relu6;model_1/model/batch_normalization_12/FusedBatchNormV3;model_1/model/batch_normalization_16/FusedBatchNormV3;model_1/model/depthwise_conv2d_5/depthwise;model_1/model/conv2d_8/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__31",
+      "inputs": [
+        "model_1/model/re_lu_8/Relu6;model_1/model/batch_normalization_12/FusedBatchNormV3;model_1/model/batch_normalization_16/FusedBatchNormV3;model_1/model/depthwise_conv2d_5/depthwise;model_1/model/conv2d_8/Conv2D",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__31:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_9/Relu6;model_1/model/batch_normalization_13/FusedBatchNormV3;model_1/model/batch_normalization_16/FusedBatchNormV3;model_1/model/depthwise_conv2d_5/depthwise;model_1/model/depthwise_conv2d_4/depthwise",
+      "inputs": [
+        "Relu6__31:0",
+        "const_fold_opt__564",
+        "const_fold_opt__416"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_9/Relu6;model_1/model/batch_normalization_13/FusedBatchNormV3;model_1/model/batch_normalization_16/FusedBatchNormV3;model_1/model/depthwise_conv2d_5/depthwise;model_1/model/depthwise_conv2d_4/depthwise"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 144,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__33",
+      "inputs": [
+        "model_1/model/re_lu_9/Relu6;model_1/model/batch_normalization_13/FusedBatchNormV3;model_1/model/batch_normalization_16/FusedBatchNormV3;model_1/model/depthwise_conv2d_5/depthwise;model_1/model/depthwise_conv2d_4/depthwise",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__33:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_14/FusedBatchNormV3;model_1/model/conv2d_9/Conv2D1",
+      "inputs": [
+        "Relu6__33:0",
+        "const_fold_opt__487",
+        "const_fold_opt__409"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_14/FusedBatchNormV3;model_1/model/conv2d_9/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_2/add",
+      "inputs": [
+        "model_1/model/batch_normalization_14/FusedBatchNormV3;model_1/model/conv2d_9/Conv2D1",
+        "model_1/model/batch_normalization_11/FusedBatchNormV3;model_1/model/conv2d_9/Conv2D;model_1/model/conv2d_7/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_2/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_10/Relu6;model_1/model/batch_normalization_15/FusedBatchNormV3;model_1/model/batch_normalization_16/FusedBatchNormV3;model_1/model/depthwise_conv2d_5/depthwise;model_1/model/conv2d_10/Conv2D",
+      "inputs": [
+        "model_1/model/add_2/add",
+        "const_fold_opt__567",
+        "const_fold_opt__484"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_10/Relu6;model_1/model/batch_normalization_15/FusedBatchNormV3;model_1/model/batch_normalization_16/FusedBatchNormV3;model_1/model/depthwise_conv2d_5/depthwise;model_1/model/conv2d_10/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__36",
+      "inputs": [
+        "model_1/model/re_lu_10/Relu6;model_1/model/batch_normalization_15/FusedBatchNormV3;model_1/model/batch_normalization_16/FusedBatchNormV3;model_1/model/depthwise_conv2d_5/depthwise;model_1/model/conv2d_10/Conv2D",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__36:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_11/Relu6;model_1/model/batch_normalization_16/FusedBatchNormV3;model_1/model/depthwise_conv2d_5/depthwise",
+      "inputs": [
+        "Relu6__36:0",
+        "const_fold_opt__584",
+        "const_fold_opt__481"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_11/Relu6;model_1/model/batch_normalization_16/FusedBatchNormV3;model_1/model/depthwise_conv2d_5/depthwise"
+      ],
+      "attrs": {
+        "strides": [
+          2,
+          2
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          3,
+          3
+        ],
+        "group": 144,
+        "pads": [
+          0,
+          0,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__38",
+      "inputs": [
+        "model_1/model/re_lu_11/Relu6;model_1/model/batch_normalization_16/FusedBatchNormV3;model_1/model/depthwise_conv2d_5/depthwise",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__38:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_17/FusedBatchNormV3;model_1/model/conv2d_15/Conv2D;model_1/model/conv2d_11/Conv2D1",
+      "inputs": [
+        "Relu6__38:0",
+        "const_fold_opt__578",
+        "const_fold_opt__477"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_17/FusedBatchNormV3;model_1/model/conv2d_15/Conv2D;model_1/model/conv2d_11/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_12/Relu6;model_1/model/batch_normalization_18/FusedBatchNormV3;model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/depthwise_conv2d_8/depthwise;model_1/model/conv2d_12/Conv2D",
+      "inputs": [
+        "model_1/model/batch_normalization_17/FusedBatchNormV3;model_1/model/conv2d_15/Conv2D;model_1/model/conv2d_11/Conv2D1",
+        "const_fold_opt__419",
+        "const_fold_opt__548"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_12/Relu6;model_1/model/batch_normalization_18/FusedBatchNormV3;model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/depthwise_conv2d_8/depthwise;model_1/model/conv2d_12/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__41",
+      "inputs": [
+        "model_1/model/re_lu_12/Relu6;model_1/model/batch_normalization_18/FusedBatchNormV3;model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/depthwise_conv2d_8/depthwise;model_1/model/conv2d_12/Conv2D",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__41:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_13/Relu6;model_1/model/batch_normalization_19/FusedBatchNormV3;model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/depthwise_conv2d_8/depthwise;model_1/model/depthwise_conv2d_6/depthwise",
+      "inputs": [
+        "Relu6__41:0",
+        "const_fold_opt__561",
+        "const_fold_opt__576"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_13/Relu6;model_1/model/batch_normalization_19/FusedBatchNormV3;model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/depthwise_conv2d_8/depthwise;model_1/model/depthwise_conv2d_6/depthwise"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          3,
+          3
+        ],
+        "group": 288,
+        "pads": [
+          1,
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__43",
+      "inputs": [
+        "model_1/model/re_lu_13/Relu6;model_1/model/batch_normalization_19/FusedBatchNormV3;model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/depthwise_conv2d_8/depthwise;model_1/model/depthwise_conv2d_6/depthwise",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__43:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_20/FusedBatchNormV3;model_1/model/conv2d_15/Conv2D;model_1/model/conv2d_13/Conv2D1",
+      "inputs": [
+        "Relu6__43:0",
+        "const_fold_opt__524",
+        "const_fold_opt__525"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_20/FusedBatchNormV3;model_1/model/conv2d_15/Conv2D;model_1/model/conv2d_13/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_3/add",
+      "inputs": [
+        "model_1/model/batch_normalization_20/FusedBatchNormV3;model_1/model/conv2d_15/Conv2D;model_1/model/conv2d_13/Conv2D1",
+        "model_1/model/batch_normalization_17/FusedBatchNormV3;model_1/model/conv2d_15/Conv2D;model_1/model/conv2d_11/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_3/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_14/Relu6;model_1/model/batch_normalization_21/FusedBatchNormV3;model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/depthwise_conv2d_8/depthwise;model_1/model/conv2d_14/Conv2D",
+      "inputs": [
+        "model_1/model/add_3/add",
+        "const_fold_opt__510",
+        "const_fold_opt__459"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_14/Relu6;model_1/model/batch_normalization_21/FusedBatchNormV3;model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/depthwise_conv2d_8/depthwise;model_1/model/conv2d_14/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__46",
+      "inputs": [
+        "model_1/model/re_lu_14/Relu6;model_1/model/batch_normalization_21/FusedBatchNormV3;model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/depthwise_conv2d_8/depthwise;model_1/model/conv2d_14/Conv2D",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__46:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_15/Relu6;model_1/model/batch_normalization_22/FusedBatchNormV3;model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/depthwise_conv2d_8/depthwise;model_1/model/depthwise_conv2d_7/depthwise",
+      "inputs": [
+        "Relu6__46:0",
+        "const_fold_opt__559",
+        "const_fold_opt__458"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_15/Relu6;model_1/model/batch_normalization_22/FusedBatchNormV3;model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/depthwise_conv2d_8/depthwise;model_1/model/depthwise_conv2d_7/depthwise"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          3,
+          3
+        ],
+        "group": 288,
+        "pads": [
+          1,
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__48",
+      "inputs": [
+        "model_1/model/re_lu_15/Relu6;model_1/model/batch_normalization_22/FusedBatchNormV3;model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/depthwise_conv2d_8/depthwise;model_1/model/depthwise_conv2d_7/depthwise",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__48:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_23/FusedBatchNormV3;model_1/model/conv2d_15/Conv2D1",
+      "inputs": [
+        "Relu6__48:0",
+        "const_fold_opt__538",
+        "const_fold_opt__455"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_23/FusedBatchNormV3;model_1/model/conv2d_15/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_4/add",
+      "inputs": [
+        "model_1/model/batch_normalization_23/FusedBatchNormV3;model_1/model/conv2d_15/Conv2D1",
+        "model_1/model/add_3/add"
+      ],
+      "outputs": [
+        "model_1/model/add_4/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_16/Relu6;model_1/model/batch_normalization_24/FusedBatchNormV3;model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/depthwise_conv2d_8/depthwise;model_1/model/conv2d_16/Conv2D",
+      "inputs": [
+        "model_1/model/add_4/add",
+        "const_fold_opt__554",
+        "const_fold_opt__454"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_16/Relu6;model_1/model/batch_normalization_24/FusedBatchNormV3;model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/depthwise_conv2d_8/depthwise;model_1/model/conv2d_16/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__51",
+      "inputs": [
+        "model_1/model/re_lu_16/Relu6;model_1/model/batch_normalization_24/FusedBatchNormV3;model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/depthwise_conv2d_8/depthwise;model_1/model/conv2d_16/Conv2D",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__51:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_17/Relu6;model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/depthwise_conv2d_8/depthwise",
+      "inputs": [
+        "Relu6__51:0",
+        "const_fold_opt__555",
+        "const_fold_opt__535"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_17/Relu6;model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/depthwise_conv2d_8/depthwise"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 288,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__53",
+      "inputs": [
+        "model_1/model/re_lu_17/Relu6;model_1/model/batch_normalization_25/FusedBatchNormV3;model_1/model/depthwise_conv2d_8/depthwise",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__53:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_26/FusedBatchNormV3;model_1/model/conv2d_21/Conv2D;model_1/model/conv2d_17/Conv2D1",
+      "inputs": [
+        "Relu6__53:0",
+        "const_fold_opt__500",
+        "const_fold_opt__501"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_26/FusedBatchNormV3;model_1/model/conv2d_21/Conv2D;model_1/model/conv2d_17/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_18/Relu6;model_1/model/batch_normalization_27/FusedBatchNormV3;model_1/model/batch_normalization_34/FusedBatchNormV3;model_1/model/depthwise_conv2d_11/depthwise;model_1/model/conv2d_18/Conv2D",
+      "inputs": [
+        "model_1/model/batch_normalization_26/FusedBatchNormV3;model_1/model/conv2d_21/Conv2D;model_1/model/conv2d_17/Conv2D1",
+        "const_fold_opt__551",
+        "const_fold_opt__498"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_18/Relu6;model_1/model/batch_normalization_27/FusedBatchNormV3;model_1/model/batch_normalization_34/FusedBatchNormV3;model_1/model/depthwise_conv2d_11/depthwise;model_1/model/conv2d_18/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__56",
+      "inputs": [
+        "model_1/model/re_lu_18/Relu6;model_1/model/batch_normalization_27/FusedBatchNormV3;model_1/model/batch_normalization_34/FusedBatchNormV3;model_1/model/depthwise_conv2d_11/depthwise;model_1/model/conv2d_18/Conv2D",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__56:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_19/Relu6;model_1/model/batch_normalization_28/FusedBatchNormV3;model_1/model/batch_normalization_34/FusedBatchNormV3;model_1/model/depthwise_conv2d_11/depthwise;model_1/model/depthwise_conv2d_9/depthwise",
+      "inputs": [
+        "Relu6__56:0",
+        "const_fold_opt__592",
+        "const_fold_opt__496"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_19/Relu6;model_1/model/batch_normalization_28/FusedBatchNormV3;model_1/model/batch_normalization_34/FusedBatchNormV3;model_1/model/depthwise_conv2d_11/depthwise;model_1/model/depthwise_conv2d_9/depthwise"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 384,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__58",
+      "inputs": [
+        "model_1/model/re_lu_19/Relu6;model_1/model/batch_normalization_28/FusedBatchNormV3;model_1/model/batch_normalization_34/FusedBatchNormV3;model_1/model/depthwise_conv2d_11/depthwise;model_1/model/depthwise_conv2d_9/depthwise",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__58:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_29/FusedBatchNormV3;model_1/model/conv2d_21/Conv2D;model_1/model/conv2d_19/Conv2D1",
+      "inputs": [
+        "Relu6__58:0",
+        "const_fold_opt__492",
+        "const_fold_opt__493"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_29/FusedBatchNormV3;model_1/model/conv2d_21/Conv2D;model_1/model/conv2d_19/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_5/add",
+      "inputs": [
+        "model_1/model/batch_normalization_29/FusedBatchNormV3;model_1/model/conv2d_21/Conv2D;model_1/model/conv2d_19/Conv2D1",
+        "model_1/model/batch_normalization_26/FusedBatchNormV3;model_1/model/conv2d_21/Conv2D;model_1/model/conv2d_17/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_5/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_20/Relu6;model_1/model/batch_normalization_30/FusedBatchNormV3;model_1/model/batch_normalization_34/FusedBatchNormV3;model_1/model/depthwise_conv2d_11/depthwise;model_1/model/conv2d_20/Conv2D",
+      "inputs": [
+        "model_1/model/add_5/add",
+        "const_fold_opt__542",
+        "const_fold_opt__436"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_20/Relu6;model_1/model/batch_normalization_30/FusedBatchNormV3;model_1/model/batch_normalization_34/FusedBatchNormV3;model_1/model/depthwise_conv2d_11/depthwise;model_1/model/conv2d_20/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__61",
+      "inputs": [
+        "model_1/model/re_lu_20/Relu6;model_1/model/batch_normalization_30/FusedBatchNormV3;model_1/model/batch_normalization_34/FusedBatchNormV3;model_1/model/depthwise_conv2d_11/depthwise;model_1/model/conv2d_20/Conv2D",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__61:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_21/Relu6;model_1/model/batch_normalization_31/FusedBatchNormV3;model_1/model/batch_normalization_34/FusedBatchNormV3;model_1/model/depthwise_conv2d_11/depthwise;model_1/model/depthwise_conv2d_10/depthwise",
+      "inputs": [
+        "Relu6__61:0",
+        "const_fold_opt__580",
+        "const_fold_opt__434"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_21/Relu6;model_1/model/batch_normalization_31/FusedBatchNormV3;model_1/model/batch_normalization_34/FusedBatchNormV3;model_1/model/depthwise_conv2d_11/depthwise;model_1/model/depthwise_conv2d_10/depthwise"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 384,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__63",
+      "inputs": [
+        "model_1/model/re_lu_21/Relu6;model_1/model/batch_normalization_31/FusedBatchNormV3;model_1/model/batch_normalization_34/FusedBatchNormV3;model_1/model/depthwise_conv2d_11/depthwise;model_1/model/depthwise_conv2d_10/depthwise",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__63:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_32/FusedBatchNormV3;model_1/model/conv2d_21/Conv2D1",
+      "inputs": [
+        "Relu6__63:0",
+        "const_fold_opt__515",
+        "const_fold_opt__518"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_32/FusedBatchNormV3;model_1/model/conv2d_21/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_6/add",
+      "inputs": [
+        "model_1/model/batch_normalization_32/FusedBatchNormV3;model_1/model/conv2d_21/Conv2D1",
+        "model_1/model/add_5/add"
+      ],
+      "outputs": [
+        "model_1/model/add_6/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_22/Relu6;model_1/model/batch_normalization_33/FusedBatchNormV3;model_1/model/batch_normalization_34/FusedBatchNormV3;model_1/model/depthwise_conv2d_11/depthwise;model_1/model/conv2d_22/Conv2D",
+      "inputs": [
+        "model_1/model/add_6/add",
+        "const_fold_opt__433",
+        "const_fold_opt__414"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_22/Relu6;model_1/model/batch_normalization_33/FusedBatchNormV3;model_1/model/batch_normalization_34/FusedBatchNormV3;model_1/model/depthwise_conv2d_11/depthwise;model_1/model/conv2d_22/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__66",
+      "inputs": [
+        "model_1/model/re_lu_22/Relu6;model_1/model/batch_normalization_33/FusedBatchNormV3;model_1/model/batch_normalization_34/FusedBatchNormV3;model_1/model/depthwise_conv2d_11/depthwise;model_1/model/conv2d_22/Conv2D",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__66:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_23/Relu6;model_1/model/batch_normalization_34/FusedBatchNormV3;model_1/model/depthwise_conv2d_11/depthwise",
+      "inputs": [
+        "Relu6__66:0",
+        "const_fold_opt__475",
+        "const_fold_opt__511"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_23/Relu6;model_1/model/batch_normalization_34/FusedBatchNormV3;model_1/model/depthwise_conv2d_11/depthwise"
+      ],
+      "attrs": {
+        "strides": [
+          2,
+          2
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 384,
+        "pads": [
+          1,
+          1,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__68",
+      "inputs": [
+        "model_1/model/re_lu_23/Relu6;model_1/model/batch_normalization_34/FusedBatchNormV3;model_1/model/depthwise_conv2d_11/depthwise",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__68:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_35/FusedBatchNormV3;model_1/model/conv2d_29/Conv2D;model_1/model/conv2d_23/Conv2D1",
+      "inputs": [
+        "Relu6__68:0",
+        "const_fold_opt__405",
+        "const_fold_opt__406"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_35/FusedBatchNormV3;model_1/model/conv2d_29/Conv2D;model_1/model/conv2d_23/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_24/Relu6;model_1/model/batch_normalization_36/FusedBatchNormV3;model_1/model/batch_normalization_46/FusedBatchNormV3;model_1/model/depthwise_conv2d_15/depthwise;model_1/model/conv2d_24/Conv2D",
+      "inputs": [
+        "model_1/model/batch_normalization_35/FusedBatchNormV3;model_1/model/conv2d_29/Conv2D;model_1/model/conv2d_23/Conv2D1",
+        "const_fold_opt__393",
+        "const_fold_opt__506"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_24/Relu6;model_1/model/batch_normalization_36/FusedBatchNormV3;model_1/model/batch_normalization_46/FusedBatchNormV3;model_1/model/depthwise_conv2d_15/depthwise;model_1/model/conv2d_24/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__71",
+      "inputs": [
+        "model_1/model/re_lu_24/Relu6;model_1/model/batch_normalization_36/FusedBatchNormV3;model_1/model/batch_normalization_46/FusedBatchNormV3;model_1/model/depthwise_conv2d_15/depthwise;model_1/model/conv2d_24/Conv2D",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__71:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_25/Relu6;model_1/model/batch_normalization_37/FusedBatchNormV3;model_1/model/depthwise_conv2d_12/depthwise;model_1/model/depthwise_conv2d_15/depthwise",
+      "inputs": [
+        "Relu6__71:0",
+        "const_fold_opt__470",
+        "const_fold_opt__400"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_25/Relu6;model_1/model/batch_normalization_37/FusedBatchNormV3;model_1/model/depthwise_conv2d_12/depthwise;model_1/model/depthwise_conv2d_15/depthwise"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 672,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__73",
+      "inputs": [
+        "model_1/model/re_lu_25/Relu6;model_1/model/batch_normalization_37/FusedBatchNormV3;model_1/model/depthwise_conv2d_12/depthwise;model_1/model/depthwise_conv2d_15/depthwise",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__73:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_38/FusedBatchNormV3;model_1/model/conv2d_29/Conv2D;model_1/model/conv2d_25/Conv2D1",
+      "inputs": [
+        "Relu6__73:0",
+        "const_fold_opt__450",
+        "const_fold_opt__396"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_38/FusedBatchNormV3;model_1/model/conv2d_29/Conv2D;model_1/model/conv2d_25/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_7/add",
+      "inputs": [
+        "model_1/model/batch_normalization_38/FusedBatchNormV3;model_1/model/conv2d_29/Conv2D;model_1/model/conv2d_25/Conv2D1",
+        "model_1/model/batch_normalization_35/FusedBatchNormV3;model_1/model/conv2d_29/Conv2D;model_1/model/conv2d_23/Conv2D1"
+      ],
+      "outputs": [
+        "model_1/model/add_7/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_26/Relu6;model_1/model/batch_normalization_39/FusedBatchNormV3;model_1/model/batch_normalization_46/FusedBatchNormV3;model_1/model/depthwise_conv2d_15/depthwise;model_1/model/conv2d_26/Conv2D",
+      "inputs": [
+        "model_1/model/add_7/add",
+        "const_fold_opt__505",
+        "const_fold_opt__447"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_26/Relu6;model_1/model/batch_normalization_39/FusedBatchNormV3;model_1/model/batch_normalization_46/FusedBatchNormV3;model_1/model/depthwise_conv2d_15/depthwise;model_1/model/conv2d_26/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__76",
+      "inputs": [
+        "model_1/model/re_lu_26/Relu6;model_1/model/batch_normalization_39/FusedBatchNormV3;model_1/model/batch_normalization_46/FusedBatchNormV3;model_1/model/depthwise_conv2d_15/depthwise;model_1/model/conv2d_26/Conv2D",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__76:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_27/Relu6;model_1/model/batch_normalization_40/FusedBatchNormV3;model_1/model/depthwise_conv2d_13/depthwise;model_1/model/depthwise_conv2d_15/depthwise",
+      "inputs": [
+        "Relu6__76:0",
+        "const_fold_opt__545",
+        "const_fold_opt__507"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_27/Relu6;model_1/model/batch_normalization_40/FusedBatchNormV3;model_1/model/depthwise_conv2d_13/depthwise;model_1/model/depthwise_conv2d_15/depthwise"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 672,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__78",
+      "inputs": [
+        "model_1/model/re_lu_27/Relu6;model_1/model/batch_normalization_40/FusedBatchNormV3;model_1/model/depthwise_conv2d_13/depthwise;model_1/model/depthwise_conv2d_15/depthwise",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__78:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_41/FusedBatchNormV3;model_1/model/conv2d_29/Conv2D;model_1/model/conv2d_27/Conv2D1",
+      "inputs": [
+        "Relu6__78:0",
+        "const_fold_opt__502",
+        "const_fold_opt__389"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_41/FusedBatchNormV3;model_1/model/conv2d_29/Conv2D;model_1/model/conv2d_27/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_8/add",
+      "inputs": [
+        "model_1/model/batch_normalization_41/FusedBatchNormV3;model_1/model/conv2d_29/Conv2D;model_1/model/conv2d_27/Conv2D1",
+        "model_1/model/add_7/add"
+      ],
+      "outputs": [
+        "model_1/model/add_8/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_28/Relu6;model_1/model/batch_normalization_42/FusedBatchNormV3;model_1/model/batch_normalization_46/FusedBatchNormV3;model_1/model/depthwise_conv2d_15/depthwise;model_1/model/conv2d_28/Conv2D",
+      "inputs": [
+        "model_1/model/add_8/add",
+        "const_fold_opt__387",
+        "const_fold_opt__427"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_28/Relu6;model_1/model/batch_normalization_42/FusedBatchNormV3;model_1/model/batch_normalization_46/FusedBatchNormV3;model_1/model/depthwise_conv2d_15/depthwise;model_1/model/conv2d_28/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__81",
+      "inputs": [
+        "model_1/model/re_lu_28/Relu6;model_1/model/batch_normalization_42/FusedBatchNormV3;model_1/model/batch_normalization_46/FusedBatchNormV3;model_1/model/depthwise_conv2d_15/depthwise;model_1/model/conv2d_28/Conv2D",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__81:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_29/Relu6;model_1/model/batch_normalization_43/FusedBatchNormV3;model_1/model/depthwise_conv2d_14/depthwise;model_1/model/depthwise_conv2d_15/depthwise",
+      "inputs": [
+        "Relu6__81:0",
+        "const_fold_opt__589",
+        "const_fold_opt__423"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_29/Relu6;model_1/model/batch_normalization_43/FusedBatchNormV3;model_1/model/depthwise_conv2d_14/depthwise;model_1/model/depthwise_conv2d_15/depthwise"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          5,
+          5
+        ],
+        "group": 672,
+        "pads": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__83",
+      "inputs": [
+        "model_1/model/re_lu_29/Relu6;model_1/model/batch_normalization_43/FusedBatchNormV3;model_1/model/depthwise_conv2d_14/depthwise;model_1/model/depthwise_conv2d_15/depthwise",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__83:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/batch_normalization_44/FusedBatchNormV3;model_1/model/conv2d_29/Conv2D1",
+      "inputs": [
+        "Relu6__83:0",
+        "const_fold_opt__582",
+        "const_fold_opt__411"
+      ],
+      "outputs": [
+        "model_1/model/batch_normalization_44/FusedBatchNormV3;model_1/model/conv2d_29/Conv2D1"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Add",
+      "name": "model_1/model/add_9/add",
+      "inputs": [
+        "model_1/model/batch_normalization_44/FusedBatchNormV3;model_1/model/conv2d_29/Conv2D1",
+        "model_1/model/add_8/add"
+      ],
+      "outputs": [
+        "model_1/model/add_9/add"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_30/Relu6;model_1/model/batch_normalization_45/FusedBatchNormV3;model_1/model/batch_normalization_46/FusedBatchNormV3;model_1/model/depthwise_conv2d_15/depthwise;model_1/model/conv2d_30/Conv2D",
+      "inputs": [
+        "model_1/model/add_9/add",
+        "const_fold_opt__382",
+        "const_fold_opt__483"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_30/Relu6;model_1/model/batch_normalization_45/FusedBatchNormV3;model_1/model/batch_normalization_46/FusedBatchNormV3;model_1/model/depthwise_conv2d_15/depthwise;model_1/model/conv2d_30/Conv2D"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          1,
+          1
+        ],
+        "pads": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "group": 1
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__86",
+      "inputs": [
+        "model_1/model/re_lu_30/Relu6;model_1/model/batch_normalization_45/FusedBatchNormV3;model_1/model/batch_normalization_46/FusedBatchNormV3;model_1/model/depthwise_conv2d_15/depthwise;model_1/model/conv2d_30/Conv2D",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__86:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Conv",
+      "name": "model_1/model/re_lu_31/Relu6;model_1/model/batch_normalization_46/FusedBatchNormV3;model_1/model/depthwise_conv2d_15/depthwise",
+      "inputs": [
+        "Relu6__86:0",
+        "const_fold_opt__572",
+        "const_fold_opt__480"
+      ],
+      "outputs": [
+        "model_1/model/re_lu_31/Relu6;model_1/model/batch_normalization_46/FusedBatchNormV3;model_1/model/depthwise_conv2d_15/depthwise"
+      ],
+      "attrs": {
+        "strides": [
+          1,
+          1
+        ],
+        "dilations": [
+          1,
+          1
+        ],
+        "kernel_shape": [
+          3,
+          3
+        ],
+        "group": 672,
+        "pads": [
+          1,
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "Clip",
+      "name": "Relu6__88",
+      "inputs": [
+        "model_1/model/re_lu_31/Relu6;model_1/model/batch_normalization_46/FusedBatchNormV3;model_1/model/depthwise_conv2d_15/depthwise",
+        "Relu6__76_min__302",
+        "Relu6__73_max__295"
+      ],
+      "outputs": [
+        "Relu6__88:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "GlobalAveragePool",
+      "name": "model_1/model/global_average_pooling2d/Mean",
+      "inputs": [
+        "Relu6__88:0"
+      ],
+      "outputs": [
+        "model_1/model/global_average_pooling2d/Mean"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Squeeze",
+      "name": "model_1/model/global_average_pooling2d/Mean_Squeeze__594",
+      "inputs": [
+        "model_1/model/global_average_pooling2d/Mean",
+        "const_axes__593"
+      ],
+      "outputs": [
+        "model_1/model/global_average_pooling2d/Mean_Squeeze__594:0"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Gemm",
+      "name": "model_1/model/conv_handflag/MatMul;model_1/model/conv_handflag/BiasAdd_Gemm__100",
+      "inputs": [
+        "model_1/model/global_average_pooling2d/Mean_Squeeze__594:0",
+        "const_fold_opt__585",
+        "const_fold_opt__410"
+      ],
+      "outputs": [
+        "model_1/model/conv_handflag/MatMul;model_1/model/conv_handflag/BiasAdd_Gemm__100:0"
+      ],
+      "attrs": {
+        "transA": 0,
+        "transB": 0
+      }
+    },
+    {
+      "op": "Gemm",
+      "name": "model_1/model/conv_handedness/MatMul;model_1/model/conv_handedness/BiasAdd_Gemm__101",
+      "inputs": [
+        "model_1/model/global_average_pooling2d/Mean_Squeeze__594:0",
+        "const_fold_opt__523",
+        "const_fold_opt__418"
+      ],
+      "outputs": [
+        "model_1/model/conv_handedness/MatMul;model_1/model/conv_handedness/BiasAdd_Gemm__101:0"
+      ],
+      "attrs": {
+        "transA": 0,
+        "transB": 0
+      }
+    },
+    {
+      "op": "Gemm",
+      "name": "Identity_Gemm__99",
+      "inputs": [
+        "model_1/model/global_average_pooling2d/Mean_Squeeze__594:0",
+        "const_fold_opt__432",
+        "const_fold_opt__404"
+      ],
+      "outputs": [
+        "Identity"
+      ],
+      "attrs": {
+        "transA": 0,
+        "transB": 0
+      }
+    },
+    {
+      "op": "Gemm",
+      "name": "Identity_3_Gemm__98",
+      "inputs": [
+        "model_1/model/global_average_pooling2d/Mean_Squeeze__594:0",
+        "const_fold_opt__489",
+        "const_fold_opt__401"
+      ],
+      "outputs": [
+        "Identity_3"
+      ],
+      "attrs": {
+        "transA": 0,
+        "transB": 0
+      }
+    },
+    {
+      "op": "Sigmoid",
+      "name": "Identity_2",
+      "inputs": [
+        "model_1/model/conv_handedness/MatMul;model_1/model/conv_handedness/BiasAdd_Gemm__101:0"
+      ],
+      "outputs": [
+        "Identity_2"
+      ],
+      "attrs": {}
+    },
+    {
+      "op": "Sigmoid",
+      "name": "Identity_1",
+      "inputs": [
+        "model_1/model/conv_handflag/MatMul;model_1/model/conv_handflag/BiasAdd_Gemm__100:0"
+      ],
+      "outputs": [
+        "Identity_1"
+      ],
+      "attrs": {}
+    }
+  ]
+}

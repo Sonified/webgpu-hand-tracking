@@ -24,7 +24,7 @@ struct ConvParams {
     pad_top: u32,
     pad_left: u32,
     group: u32,       // 1 = standard conv, in_c = depthwise
-    has_prelu: u32,   // 0 = no activation, 1 = PReLU
+    has_prelu: u32,   // 0 = no activation, 1 = PReLU, 2 = ReLU6 (Clip 0-6)
     has_residual: u32, // 0 = no residual add, 1 = add residual before activation
 }
 
@@ -80,12 +80,15 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         sum += residual[out_idx];
     }
 
-    // PReLU activation: x > 0 ? x : slope * x
-    // One line. No decomposition. No 4-op workaround.
+    // Activation: 1 = PReLU, 2 = ReLU6 (Clip 0-6)
     if (params.has_prelu == 1u) {
+        // PReLU: x > 0 ? x : slope * x. One line. No decomposition.
         if (sum < 0.0) {
             sum = sum * prelu_slope[oc];
         }
+    } else if (params.has_prelu == 2u) {
+        // ReLU6: clamp(x, 0, 6). Used by hand landmark model.
+        sum = clamp(sum, 0.0, 6.0);
     }
 
     // Write output (NCHW layout)
