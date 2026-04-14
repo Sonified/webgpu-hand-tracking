@@ -774,16 +774,20 @@ export class ModelRunner {
       }
     }
 
-    console.log(`[compiled] ${this._steps.length} GPU steps pre-built`);
+    this._buildReadbackBuffers();
+    console.log(`[compiled] ${this._steps.length} GPU steps, ${this._readbackInfos.length} outputs pre-allocated`);
     return outputs;
   }
 
   /**
    * Execute pre-compiled model. Zero graph walking, zero allocation, zero bind group creation.
-   * Just encode and submit.
+   * Just encode, submit, and read back via pre-allocated staging buffers.
    */
   async runCompiled() {
-    const enc = this.device.createCommandEncoder();
+    const device = this.device;
+    const enc = device.createCommandEncoder();
+
+    // Dispatch all compute + copy steps
     for (const s of this._steps) {
       if (s.type === 'dispatch') {
         const pass = enc.beginComputePass();
@@ -795,15 +799,36 @@ export class ModelRunner {
         enc.copyBufferToBuffer(s.src, s.srcOff, s.dst, s.dstOff, s.bytes);
       }
     }
-    this.device.queue.submit([enc.finish()]);
-    await this.device.queue.onSubmittedWorkDone();
 
-    // Read outputs
-    const outputs = {};
-    for (const [name, info] of Object.entries(this._outputBufs)) {
-      outputs[name] = await this._readBuffer(info.buf, info.floats);
+    // Copy outputs to pre-allocated staging buffers in the SAME encoder (no extra submit)
+    for (const info of this._readbackInfos) {
+      enc.copyBufferToBuffer(info.src, 0, info.staging, 0, info.bytes);
     }
+
+    // Single submit, single await
+    device.queue.submit([enc.finish()]);
+
+    // Map all staging buffers in parallel
+    const outputs = {};
+    await Promise.all(this._readbackInfos.map(async (info) => {
+      await info.staging.mapAsync(GPUMapMode.READ);
+      outputs[info.name] = new Float32Array(info.staging.getMappedRange()).slice();
+      info.staging.unmap();
+    }));
     return outputs;
+  }
+
+  /** Pre-allocate staging buffers for output readback during compile() */
+  _buildReadbackBuffers() {
+    this._readbackInfos = [];
+    for (const [name, info] of Object.entries(this._outputBufs)) {
+      const bytes = info.floats * 4;
+      const staging = this.device.createBuffer({
+        size: bytes,
+        usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+      });
+      this._readbackInfos.push({ name, src: info.buf, staging, bytes });
+    }
   }
 
   async _readBuffer(gpuBuf, floats) {
