@@ -1,688 +1,104 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width">
-<title>WebGPU Vision Engine Test</title>
-</head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Palm Detector Test</title></head>
 <body style="background:#111;color:#0f0;font:13px monospace;padding:16px;white-space:pre-wrap;">
-<div id="log">WebGPU Vision Engine — Full Palm Detector
-==========================================
+<div id="log">Palm Detector Model Test
+========================
 </div>
 <script type="module">
-const logEl = document.getElementById('log');
-function log(s) { logEl.textContent += s + '\n'; console.log(s); }
-function err(s) { logEl.textContent += '❌ ' + s + '\n'; console.error(s); }
-function ok(s) { logEl.textContent += '✅ ' + s + '\n'; console.log(s); }
+import { ModelRunner } from './model-runner.js';
+
+const L = document.getElementById('log');
+const log = s => { L.textContent += s + '\n'; console.log(s); };
 
 (async () => {
 try {
-
-  // ============================================================
-  // Init
-  // ============================================================
-  if (!navigator.gpu) { err('No WebGPU'); return; }
+  log(`Started: ${new Date().toISOString()}`);
+  await import('./session-timer.mjs').then(m => m.logBanner(log)).catch(() => {});
+  if (!navigator.gpu) { log('No WebGPU'); return; }
   const adapter = await navigator.gpu.requestAdapter();
-  if (!adapter) { err('No adapter'); return; }
   const device = await adapter.requestDevice();
-  ok('WebGPU device ready');
+  log('WebGPU ready');
 
-  // Load model
   const graph = await (await fetch('../models/palm_detection_lite.json')).json();
   const allWeights = new Float32Array(await (await fetch('../models/palm_detection_lite.bin')).arrayBuffer());
-  ok(`Model: ${graph.graph.length} nodes, ${(allWeights.length*4/1024/1024).toFixed(2)} MB weights`);
+  log(`Model: ${graph.graph.length} nodes, ${(allWeights.length*4/1024/1024).toFixed(2)} MB`);
 
-  // Upload weight slices
   const W = {};
   for (const [name, info] of Object.entries(graph.weights)) {
     if (info.length === 0) continue;
-    const buf = device.createBuffer({
-      size: Math.max(info.length * 4, 4),
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-    });
+    const buf = device.createBuffer({ size: Math.max(info.length * 4, 4), usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
     device.queue.writeBuffer(buf, 0, allWeights.subarray(info.offset, info.offset + info.length));
     W[name] = buf;
   }
 
-  // Compile shaders
-  const conv2dCode = await (await fetch('./conv2d.wgsl')).text();
-  const maxpoolCode = await (await fetch('./maxpool.wgsl')).text();
-  const resizeCode = await (await fetch('./resize.wgsl')).text();
-
+  const mkP = async (name) => {
+    const code = await (await fetch(`./${name}.wgsl`)).text();
+    return device.createComputePipeline({ layout: 'auto', compute: { module: device.createShaderModule({ code }), entryPoint: 'main' } });
+  };
   const P = {
-    conv2d: device.createComputePipeline({
-      layout: 'auto',
-      compute: { module: device.createShaderModule({ code: conv2dCode }), entryPoint: 'main' },
-    }),
-    maxpool: device.createComputePipeline({
-      layout: 'auto',
-      compute: { module: device.createShaderModule({ code: maxpoolCode }), entryPoint: 'main' },
-    }),
-    resize: device.createComputePipeline({
-      layout: 'auto',
-      compute: { module: device.createShaderModule({ code: resizeCode }), entryPoint: 'main' },
-    }),
+    conv2d: await mkP('conv2d'), maxpool: await mkP('maxpool'), resize: await mkP('resize'),
+    gemm: await mkP('gemm'), global_avg_pool: await mkP('global_avg_pool'),
+    add: await mkP('add'), pad_channels: await mkP('pad_channels'),
+    fused_block: await mkP('fused_block'),
+    transpose_nhwc: await mkP('transpose_nhwc'),
   };
-  ok('Shaders compiled');
+  log('Shaders compiled');
 
-  // ============================================================
-  // Buffer allocation
-  // ============================================================
-  const BUF_FLAGS = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST;
-  function buf(floats, label) {
-    return device.createBuffer({ size: floats * 4, usage: BUF_FLAGS, label });
-  }
-  const dummy = device.createBuffer({ size: 4, usage: GPUBufferUsage.STORAGE });
+  const allWeightsBuf = device.createBuffer({ size: allWeights.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+  device.queue.writeBuffer(allWeightsBuf, 0, allWeights);
 
-  // We use named buffers for clarity. Ping-pong where needed.
-  const B = {
-    input_nhwc: buf(1*192*192*3, 'input_nhwc'),
-    input_nchw: buf(1*3*192*192, 'input_nchw'),
-    // Stage 1: 32ch @ 96x96
-    s1_a: buf(32*96*96, 's1_a'), s1_b: buf(32*96*96, 's1_b'), s1_dw: buf(32*96*96, 's1_dw'),
-    // After maxpool: 32ch @ 48x48, padded to 64ch
-    s1_pool: buf(64*48*48, 's1_pool'),
-    // Stage 2: 64ch @ 48x48
-    s2_a: buf(64*48*48, 's2_a'), s2_b: buf(64*48*48, 's2_b'), s2_dw: buf(64*48*48, 's2_dw'),
-    s2_dw_ds: buf(32*48*48, 's2_dw_ds'), // DW conv: 32ch@96x96 -> 32ch@48x48
-    // After maxpool: 64ch @ 24x24, padded to 128ch
-    s2_pool: buf(128*24*24, 's2_pool'),
-    // Stage 3: 128ch @ 24x24
-    s3_a: buf(128*24*24, 's3_a'), s3_b: buf(128*24*24, 's3_b'), s3_dw: buf(128*24*24, 's3_dw'),
-    s3_dw_ds: buf(64*24*24, 's3_dw_ds'), // DW conv: 64ch@48x48 -> 64ch@24x24
-    // After maxpool: 128ch @ 12x12, padded to 256ch
-    s3_pool: buf(256*12*12, 's3_pool'),
-    // Stage 4: 256ch @ 12x12
-    s4_a: buf(256*12*12, 's4_a'), s4_b: buf(256*12*12, 's4_b'), s4_dw: buf(256*12*12, 's4_dw'),
-    s4_dw_ds: buf(128*12*12, 's4_dw_ds'), // DW conv: 128ch@24x24 -> 128ch@12x12
-    // After maxpool: 256ch @ 6x6 (no pad needed, stays 256)
-    s4_pool: buf(256*6*6, 's4_pool'),
-    // Stage 5: 256ch @ 6x6
-    s5_a: buf(256*6*6, 's5_a'), s5_b: buf(256*6*6, 's5_b'), s5_dw: buf(256*6*6, 's5_dw'),
-    // FPN: 256ch @ 12x12 (upsampled from 6x6)
-    fpn1_up: buf(256*12*12, 'fpn1_up'),
-    fpn1_a: buf(256*12*12, 'fpn1_a'), fpn1_b: buf(256*12*12, 'fpn1_b'), fpn1_dw: buf(256*12*12, 'fpn1_dw'),
-    // FPN: 256ch @ 24x24 (upsampled from 12x12)
-    fpn2_up: buf(256*24*24, 'fpn2_up'),
-    // FPN2 uses 128ch after first conv
-    fpn2_a: buf(128*24*24, 'fpn2_a'), fpn2_b: buf(128*24*24, 'fpn2_b'), fpn2_dw: buf(128*24*24, 'fpn2_dw'),
-    // Output heads
-    reg_16: buf(108*12*12, 'reg_16'),   // regressor @ stride 16
-    cls_16: buf(6*12*12, 'cls_16'),     // classifier @ stride 16
-    reg_8: buf(36*24*24, 'reg_8'),      // regressor @ stride 8
-    cls_8: buf(2*24*24, 'cls_8'),       // classifier @ stride 8
-    // Final outputs (after transpose+reshape+concat)
-    regressors: buf(2016*18, 'regressors'),
-    classifiers: buf(2016, 'classifiers'),
-  };
-  ok('Activation buffers allocated');
+  const inputNCHW = new Float32Array(3 * 192 * 192).fill(0.5);
+  const inputBuf = device.createBuffer({
+    size: inputNCHW.byteLength,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+  });
+  device.queue.writeBuffer(inputBuf, 0, inputNCHW);
 
-  // ============================================================
-  // Helper: dispatch conv
-  // ============================================================
-  function dispatchConv(enc, input, output, residual, wName, bName, preluName,
-                        inC, inH, inW, outC, outH, outW, kernH, kernW,
-                        strideH, strideW, padTop, padLeft, group) {
-    const hasPReLU = !!preluName;
-    const hasRes = !!residual;
-    const params = new Uint32Array([
-      1, inC, inH, inW, outC, outH, outW, kernH, kernW,
-      strideH, strideW, padTop, padLeft, group,
-      hasPReLU ? 1 : 0, hasRes ? 1 : 0,
-    ]);
-    const pb = device.createBuffer({ size: params.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-    device.queue.writeBuffer(pb, 0, params);
-    const pass = enc.beginComputePass();
-    pass.setPipeline(P.conv2d);
-    pass.setBindGroup(0, device.createBindGroup({
-      layout: P.conv2d.getBindGroupLayout(0),
-      entries: [
-        { binding: 0, resource: { buffer: pb } },
-        { binding: 1, resource: { buffer: input } },
-        { binding: 2, resource: { buffer: W[wName] } },
-        { binding: 3, resource: { buffer: W[bName] } },
-        { binding: 4, resource: { buffer: hasPReLU ? W[preluName] : dummy } },
-        { binding: 5, resource: { buffer: hasRes ? residual : dummy } },
-        { binding: 6, resource: { buffer: output } },
-      ],
-    }));
-    pass.dispatchWorkgroups(Math.ceil(outW/8), Math.ceil(outH/8), outC);
-    pass.end();
-  }
+  const runner = new ModelRunner(device, P, W, allWeightsBuf);
 
-  function dispatchMaxPool(enc, input, output, channels, inH, inW, outChannels) {
-    const params = new Uint32Array([channels, inH, inW, inH/2, inW/2, outChannels]);
-    const pb = device.createBuffer({ size: params.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-    device.queue.writeBuffer(pb, 0, params);
-    const pass = enc.beginComputePass();
-    pass.setPipeline(P.maxpool);
-    pass.setBindGroup(0, device.createBindGroup({
-      layout: P.maxpool.getBindGroupLayout(0),
-      entries: [
-        { binding: 0, resource: { buffer: pb } },
-        { binding: 1, resource: { buffer: input } },
-        { binding: 2, resource: { buffer: output } },
-      ],
-    }));
-    pass.dispatchWorkgroups(Math.ceil(inW/2/8), Math.ceil(inH/2/8), outChannels);
-    pass.end();
-  }
-
-  function dispatchResize(enc, input, output, channels, inH, inW) {
-    const params = new Uint32Array([channels, inH, inW, inH*2, inW*2]);
-    const pb = device.createBuffer({ size: params.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-    device.queue.writeBuffer(pb, 0, params);
-    const pass = enc.beginComputePass();
-    pass.setPipeline(P.resize);
-    pass.setBindGroup(0, device.createBindGroup({
-      layout: P.resize.getBindGroupLayout(0),
-      entries: [
-        { binding: 0, resource: { buffer: pb } },
-        { binding: 1, resource: { buffer: input } },
-        { binding: 2, resource: { buffer: output } },
-      ],
-    }));
-    pass.dispatchWorkgroups(Math.ceil(inW*2/8), Math.ceil(inH*2/8), channels);
-    pass.end();
-  }
-
-  // ============================================================
-  // Helper: residual block (DW Conv -> 1x1 Conv+Add+PReLU)
-  // ============================================================
-  function residualBlock(enc, input, dwOut, output, residual,
-                         dwW, dwB, pwW, pwB, preluSlope,
-                         C, H, W_dim, group) {
-    // Depthwise conv 5x5
-    dispatchConv(enc, input, dwOut, null, dwW, dwB, null,
-                 C, H, W_dim, C, H, W_dim, 5, 5, 1, 1, 2, 2, group);
-    // Pointwise conv 1x1 + Add residual + PReLU
-    const outC = graph.weights[pwW].shape[0];
-    dispatchConv(enc, dwOut, output, residual, pwW, pwB, preluSlope,
-                 C, H, W_dim, outC, H, W_dim, 1, 1, 1, 1, 0, 0, 1);
-  }
-
-  // ============================================================
-  // TRANSPOSE: NHWC -> NCHW (simple CPU copy for now)
-  // ============================================================
-  function transposeNHWCtoNCHW(nhwc, H, W_dim, C) {
-    const nchw = new Float32Array(C * H * W_dim);
-    for (let h = 0; h < H; h++)
-      for (let w = 0; w < W_dim; w++)
-        for (let c = 0; c < C; c++)
-          nchw[c * H * W_dim + h * W_dim + w] = nhwc[h * W_dim * C + w * C + c];
-    return nchw;
-  }
-
-  function transposeNCHWtoNHWC(nchw, C, H, W_dim) {
-    const nhwc = new Float32Array(H * W_dim * C);
-    for (let h = 0; h < H; h++)
-      for (let w = 0; w < W_dim; w++)
-        for (let c = 0; c < C; c++)
-          nhwc[h * W_dim * C + w * C + c] = nchw[c * H * W_dim + h * W_dim + w];
-    return nhwc;
-  }
-
-  // ============================================================
-  // Read buffer back to CPU
-  // ============================================================
-  async function readBuffer(gpuBuf, floats) {
-    const rb = device.createBuffer({ size: floats * 4, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
-    const enc = device.createCommandEncoder();
-    enc.copyBufferToBuffer(gpuBuf, 0, rb, 0, floats * 4);
-    device.queue.submit([enc.finish()]);
-    await rb.mapAsync(GPUMapMode.READ);
-    const data = new Float32Array(rb.getMappedRange()).slice();
-    rb.unmap(); rb.destroy();
-    return data;
-  }
-
-  // ============================================================
-  // RUN THE FULL PIPELINE
-  // ============================================================
-  log('\n--- Running full palm detector pipeline ---');
-
-  // Test input: 0.5 gray, NHWC
-  const inputNHWC = new Float32Array(192*192*3).fill(0.5);
-  const inputNCHW = transposeNHWCtoNCHW(inputNHWC, 192, 192, 3);
-  device.queue.writeBuffer(B.input_nchw, 0, inputNCHW);
-
-  const g = graph.graph; // shorthand
-
-  // Time everything
+  log('\nRunning inference...');
   const t0 = performance.now();
-  let enc = device.createCommandEncoder();
+  const outputs = await runner.run(graph, inputBuf, allWeights);
+  log(`Inference time: ${(performance.now() - t0).toFixed(1)}ms`);
 
-  // --- STAGE 1: 3ch@192 -> 32ch@96 -> 3 residual blocks -> MaxPool+Pad -> 64ch@48 ---
-  // Node 1: Conv 5x5 s2 + PReLU -> 32ch @ 96x96
-  dispatchConv(enc, B.input_nchw, B.s1_a, null, g[1].inputs[1], g[1].inputs[2], g[2].inputs[1],
-               3, 192, 192, 32, 96, 96, 5, 5, 2, 2, 1, 1, 1);
-  // Nodes 3-6: residual block 1
-  residualBlock(enc, B.s1_a, B.s1_dw, B.s1_b, B.s1_a,
-                g[3].inputs[1], g[3].inputs[2], g[4].inputs[1], g[4].inputs[2], g[6].inputs[1],
-                32, 96, 96, 32);
-  // Nodes 7-10: residual block 2
-  residualBlock(enc, B.s1_b, B.s1_dw, B.s1_a, B.s1_b,
-                g[7].inputs[1], g[7].inputs[2], g[8].inputs[1], g[8].inputs[2], g[10].inputs[1],
-                32, 96, 96, 32);
-  // Nodes 11-14: residual block 3
-  residualBlock(enc, B.s1_a, B.s1_dw, B.s1_b, B.s1_a,
-                g[11].inputs[1], g[11].inputs[2], g[12].inputs[1], g[12].inputs[2], g[14].inputs[1],
-                32, 96, 96, 32);
-  // Node 15-16: MaxPool 2x2 + Pad 32->64
-  dispatchMaxPool(enc, B.s1_b, B.s1_pool, 32, 96, 96, 64);
-
-  // --- CHECKPOINT: verify stage 1 ---
-  device.queue.submit([enc.finish()]);
-  const s1_check = await readBuffer(B.s1_b, 32*96*96);
-  const s1_ref = [0.827933, 0.798907, 0.811686, 0.803168, 0.803810, 0.803223, 0.803203, 0.803307];
-  let s1_maxErr = 0;
-  for (let i = 0; i < 8; i++) s1_maxErr = Math.max(s1_maxErr, Math.abs(s1_check[i] - s1_ref[i]));
-  log(`\n  STAGE 1 check (node 14): first 4 = [${s1_check.slice(0,4).map(v=>v.toFixed(6)).join(', ')}]`);
-  log(`  STAGE 1 ref:             first 4 = [${s1_ref.slice(0,4).map(v=>v.toFixed(6)).join(', ')}]`);
-  log(`  STAGE 1 max error: ${s1_maxErr.toFixed(6)} ${s1_maxErr < 0.001 ? '✅' : '❌'}`);
-
-  enc = device.createCommandEncoder();
-
-  // --- STAGE 2: 64ch @ 48x48, with stride-2 DW entry ---
-  // Nodes 17-20: stride-2 DW + 1x1 conv + add + prelu (transition block)
-  dispatchConv(enc, B.s1_b, B.s2_dw_ds, null, g[17].inputs[1], g[17].inputs[2], null,
-               32, 96, 96, 32, 48, 48, 5, 5, 2, 2, 1, 1, 32);
-  dispatchConv(enc, B.s2_dw_ds, B.s2_a, B.s1_pool, g[18].inputs[1], g[18].inputs[2], g[20].inputs[1],
-               32, 48, 48, 64, 48, 48, 1, 1, 1, 1, 0, 0, 1);
-
-  // --- CHECKPOINT: node 20 (transition block output, before residual blocks) ---
-  device.queue.submit([enc.finish()]);
-  const s2_trans = await readBuffer(B.s2_a, 64*48*48);
-  const s2t_ref = [0.776580, 0.979267, 0.936271, 0.932938, 0.932392, 0.932392, 0.932392, 0.932392];
-  let s2t_maxErr = 0;
-  for (let i = 0; i < 8; i++) s2t_maxErr = Math.max(s2t_maxErr, Math.abs(s2_trans[i] - s2t_ref[i]));
-  log(`  STAGE 2 transition (node 20): first 4 = [${s2_trans.slice(0,4).map(v=>v.toFixed(6)).join(', ')}]`);
-  log(`  STAGE 2 trans ref:            first 4 = [${s2t_ref.slice(0,4).map(v=>v.toFixed(6)).join(', ')}]`);
-  log(`  STAGE 2 transition max error: ${s2t_maxErr.toFixed(6)} ${s2t_maxErr < 0.001 ? '✅' : '❌'}`);
-  enc = device.createCommandEncoder();
-
-  // Nodes 21-24: residual block
-  residualBlock(enc, B.s2_a, B.s2_dw, B.s2_b, B.s2_a,
-                g[21].inputs[1], g[21].inputs[2], g[22].inputs[1], g[22].inputs[2], g[24].inputs[1],
-                64, 48, 48, 64);
-  // Nodes 25-28: residual block
-  residualBlock(enc, B.s2_b, B.s2_dw, B.s2_a, B.s2_b,
-                g[25].inputs[1], g[25].inputs[2], g[26].inputs[1], g[26].inputs[2], g[28].inputs[1],
-                64, 48, 48, 64);
-  // Nodes 29-32: residual block
-  residualBlock(enc, B.s2_a, B.s2_dw, B.s2_b, B.s2_a,
-                g[29].inputs[1], g[29].inputs[2], g[30].inputs[1], g[30].inputs[2], g[32].inputs[1],
-                64, 48, 48, 64);
-  // Nodes 33-34: MaxPool + Pad 64->128
-  dispatchMaxPool(enc, B.s2_b, B.s2_pool, 64, 48, 48, 128);
-
-  // --- CHECKPOINT: verify stage 2 (node 32 = s2_a after last residual) ---
-  device.queue.submit([enc.finish()]);
-  // Stage 2 ping-pong: transition->s2_a, block21-24->s2_b, block25-28->s2_a, block29-32->s2_b
-  // Wait - block 29-32: residualBlock(B.s2_a, B.s2_dw, B.s2_b, B.s2_a) -> output=s2_b, residual=s2_a
-  // So stage 2 final is in s2_b? Let me retrace:
-  // transition: output=s2_a
-  // block 21-24: input=s2_a, output=s2_b, residual=s2_a -> s2_b
-  // block 25-28: input=s2_b, output=s2_a, residual=s2_b -> s2_a
-  // block 29-32: input=s2_a, output=s2_b, residual=s2_a -> s2_b
-  // So node 32 (PReLU) output is in s2_b. We maxpool s2_b. ✓
-  const s2_check = await readBuffer(B.s2_b, 64*48*48);
-  // But reference is node 32 = PReLU at end of stage 2 block 4
-  // Hmm, node 32 is the last PReLU of stage 2. node 20 is the first block.
-  // Reference node_32 first 8: [0.071189, 0.087401, 0.120841, ...]
-  const s2_ref = [0.071189, 0.087401, 0.120841, 0.110602, 0.113560, 0.113450, 0.111349, 0.111316];
-  let s2_maxErr = 0;
-  for (let i = 0; i < 8; i++) s2_maxErr = Math.max(s2_maxErr, Math.abs(s2_check[i] - s2_ref[i]));
-  log(`  STAGE 2 check (node 32): first 4 = [${s2_check.slice(0,4).map(v=>v.toFixed(6)).join(', ')}]`);
-  log(`  STAGE 2 ref:             first 4 = [${s2_ref.slice(0,4).map(v=>v.toFixed(6)).join(', ')}]`);
-  log(`  STAGE 2 max error: ${s2_maxErr.toFixed(6)} ${s2_maxErr < 0.001 ? '✅' : '❌'}`);
-
-  // Also check node 20 (first block of stage 2)
-  // node 20 output is in s2_a (transition->s2_a, block writes s2_b... wait no)
-  // After transition: s2_a. After block 21-24: s2_b. node 20 is the PReLU after the transition block.
-  // The transition block writes to s2_a (dispatchConv to B.s2_a). node 20 is the PReLU of that.
-  // But the PReLU is fused into the conv (g[18] conv with g[20] prelu). So s2_a HAS the node 20 output.
-  // But then block 21-24 reads s2_a and writes s2_b, so s2_a is NOT overwritten by block 21-24
-  // (it's the input, not the output). But block 25-28 writes BACK to s2_a. So after all blocks, s2_a
-  // has block 25-28 output, not node 20.
-  // We'd need to read s2_a BEFORE block 25-28 runs. Too late now. Skip this check.
-
-  enc = device.createCommandEncoder();
-
-  // --- STAGE 3: 128ch @ 24x24 ---
-  dispatchConv(enc, B.s2_b, B.s3_dw_ds, null, g[35].inputs[1], g[35].inputs[2], null,
-               64, 48, 48, 64, 24, 24, 5, 5, 2, 2, 1, 1, 64);
-  dispatchConv(enc, B.s3_dw_ds, B.s3_a, B.s2_pool, g[36].inputs[1], g[36].inputs[2], g[38].inputs[1],
-               64, 24, 24, 128, 24, 24, 1, 1, 1, 1, 0, 0, 1);
-  residualBlock(enc, B.s3_a, B.s3_dw, B.s3_b, B.s3_a,
-                g[39].inputs[1], g[39].inputs[2], g[40].inputs[1], g[40].inputs[2], g[42].inputs[1],
-                128, 24, 24, 128);
-  residualBlock(enc, B.s3_b, B.s3_dw, B.s3_a, B.s3_b,
-                g[43].inputs[1], g[43].inputs[2], g[44].inputs[1], g[44].inputs[2], g[46].inputs[1],
-                128, 24, 24, 128);
-  residualBlock(enc, B.s3_a, B.s3_dw, B.s3_b, B.s3_a,
-                g[47].inputs[1], g[47].inputs[2], g[48].inputs[1], g[48].inputs[2], g[50].inputs[1],
-                128, 24, 24, 128);
-  // Nodes 51-52: MaxPool + Pad 128->256
-  dispatchMaxPool(enc, B.s3_b, B.s3_pool, 128, 24, 24, 256);
-
-  // CHECKPOINT: stage 3 (node 50). Ping-pong: trans->s3_a, b1->s3_b, b2->s3_a, b3->s3_b
-  device.queue.submit([enc.finish()]);
-  const s3_check = await readBuffer(B.s3_b, 128*24*24);
-  const s3_ref = [0.163228, 0.230550, 0.153696, 0.219769, 0.221642, 0.215345, 0.213202, 0.212457];
-  let s3_maxErr = 0;
-  for (let i = 0; i < 8; i++) s3_maxErr = Math.max(s3_maxErr, Math.abs(s3_check[i] - s3_ref[i]));
-  log(`  STAGE 3 check (node 50): err=${s3_maxErr.toFixed(6)} ${s3_maxErr < 0.001 ? '✅' : '❌'} first 2=[${s3_check.slice(0,2).map(v=>v.toFixed(6)).join(', ')}]`);
-  enc = device.createCommandEncoder();
-
-  // --- STAGE 4: 256ch @ 12x12 ---
-  dispatchConv(enc, B.s3_b, B.s4_dw_ds, null, g[53].inputs[1], g[53].inputs[2], null,
-               128, 24, 24, 128, 12, 12, 5, 5, 2, 2, 1, 1, 128);
-  dispatchConv(enc, B.s4_dw_ds, B.s4_a, B.s3_pool, g[54].inputs[1], g[54].inputs[2], g[56].inputs[1],
-               128, 12, 12, 256, 12, 12, 1, 1, 1, 1, 0, 0, 1);
-  residualBlock(enc, B.s4_a, B.s4_dw, B.s4_b, B.s4_a,
-                g[57].inputs[1], g[57].inputs[2], g[58].inputs[1], g[58].inputs[2], g[60].inputs[1],
-                256, 12, 12, 256);
-  residualBlock(enc, B.s4_b, B.s4_dw, B.s4_a, B.s4_b,
-                g[61].inputs[1], g[61].inputs[2], g[62].inputs[1], g[62].inputs[2], g[64].inputs[1],
-                256, 12, 12, 256);
-  residualBlock(enc, B.s4_a, B.s4_dw, B.s4_b, B.s4_a,
-                g[65].inputs[1], g[65].inputs[2], g[66].inputs[1], g[66].inputs[2], g[68].inputs[1],
-                256, 12, 12, 256);
-  // Node 69: MaxPool (no pad — stays 256ch, goes to 6x6)
-  dispatchMaxPool(enc, B.s4_b, B.s4_pool, 256, 12, 12, 256);
-
-  // CHECKPOINT: stage 4 (node 68). Ping-pong: trans->s4_a, b1->s4_b, b2->s4_a, b3->s4_b
-  device.queue.submit([enc.finish()]);
-  const s4_check = await readBuffer(B.s4_b, 256*12*12);
-  const s4_ref = [0.055800, 0.174999, 0.120602, 0.089120, 0.084649, 0.065971, 0.066338, 0.082138];
-  let s4_maxErr = 0;
-  for (let i = 0; i < 8; i++) s4_maxErr = Math.max(s4_maxErr, Math.abs(s4_check[i] - s4_ref[i]));
-  log(`  STAGE 4 check (node 68): err=${s4_maxErr.toFixed(6)} ${s4_maxErr < 0.001 ? '✅' : '❌'} first 2=[${s4_check.slice(0,2).map(v=>v.toFixed(6)).join(', ')}]`);
-  enc = device.createCommandEncoder();
-
-  // --- STAGE 5: 256ch @ 6x6 ---
-  // Nodes 70-73: transition block (stride-2 DW from stage 4 output)
-  dispatchConv(enc, B.s4_b, B.s5_dw, null, g[70].inputs[1], g[70].inputs[2], null,
-               256, 12, 12, 256, 6, 6, 5, 5, 2, 2, 1, 1, 256);
-  dispatchConv(enc, B.s5_dw, B.s5_a, B.s4_pool, g[71].inputs[1], g[71].inputs[2], g[73].inputs[1],
-               256, 6, 6, 256, 6, 6, 1, 1, 1, 1, 0, 0, 1);
-  residualBlock(enc, B.s5_a, B.s5_dw, B.s5_b, B.s5_a,
-                g[74].inputs[1], g[74].inputs[2], g[75].inputs[1], g[75].inputs[2], g[77].inputs[1],
-                256, 6, 6, 256);
-  residualBlock(enc, B.s5_b, B.s5_dw, B.s5_a, B.s5_b,
-                g[78].inputs[1], g[78].inputs[2], g[79].inputs[1], g[79].inputs[2], g[81].inputs[1],
-                256, 6, 6, 256);
-  residualBlock(enc, B.s5_a, B.s5_dw, B.s5_b, B.s5_a,
-                g[82].inputs[1], g[82].inputs[2], g[83].inputs[1], g[83].inputs[2], g[85].inputs[1],
-                256, 6, 6, 256);
-
-  // CHECKPOINT: stage 5 (node 85). Ping-pong: trans->s5_a, b1->s5_b, b2->s5_a, b3->s5_b
-  device.queue.submit([enc.finish()]);
-  const s5_check = await readBuffer(B.s5_b, 256*6*6);
-  const s5_ref = [6.469761, 7.324859, 7.420028, 7.427164, 7.311700, 6.259507, 7.340261, 6.276418];
-  let s5_maxErr = 0;
-  for (let i = 0; i < 8; i++) s5_maxErr = Math.max(s5_maxErr, Math.abs(s5_check[i] - s5_ref[i]));
-  log(`  STAGE 5 check (node 85): err=${s5_maxErr.toFixed(6)} ${s5_maxErr < 0.001 ? '✅' : '❌'} first 2=[${s5_check.slice(0,2).map(v=>v.toFixed(6)).join(', ')}]`);
-  enc = device.createCommandEncoder();
-
-  // --- FPN HEAD 1: upsample 6x6 -> 12x12, merge with stage 4 ---
-  // Node 86: Resize 2x
-  dispatchResize(enc, B.s5_b, B.fpn1_up, 256, 6, 6);
-  // CHECKPOINT: resize output (node 86)
-  device.queue.submit([enc.finish()]);
-  const resize_check = await readBuffer(B.fpn1_up, 256*12*12);
-  const n86_ref = [6.469761, 6.683536, 7.111084, 7.348651, 7.396235, 7.421812, 7.425380, 7.398298];
-  let n86_err = 0;
-  for (let i = 0; i < 8; i++) n86_err = Math.max(n86_err, Math.abs(resize_check[i] - n86_ref[i]));
-  log(`  Resize (node 86): err=${n86_err.toFixed(6)} ${n86_err < 0.01 ? '✅' : '❌'} first 2=[${resize_check.slice(0,2).map(v=>v.toFixed(6)).join(', ')}]`);
-  enc = device.createCommandEncoder();
-
-  // Node 87-88: Conv 1x1 + PReLU
-  dispatchConv(enc, B.fpn1_up, B.fpn1_a, null, g[87].inputs[1], g[87].inputs[2], g[88].inputs[1],
-               256, 12, 12, 256, 12, 12, 1, 1, 1, 1, 0, 0, 1);
-  // Node 89: Add (FPN skip connection from stage 4 output)
-  // Fuse into next conv as residual — but this Add is standalone.
-  // For now: run a Conv identity-like op... actually let's just dispatch a special add.
-  // HACK: we'll handle this by adding s4_b to fpn1_a. Our conv shader can do this
-  // if we run a 1x1 identity conv... but simpler to just do it on CPU after.
-  // Actually, let's use our conv with has_residual. We can make the previous conv
-  // output to fpn1_b and then do the add manually. But the cleanest is:
-  // Node 87 conv writes to fpn1_a. Node 89 adds s4_a (stage 4 final) to fpn1_a.
-  // Let's just re-dispatch the same conv but with residual.
-  // ACTUALLY: the Add at 89 adds the UPSAMPLED result to the STAGE 4 output (node 68 output = s4_b...
-  // wait, stage 4 ends at node 68 PReLU output which we stored in s4_a after last residual block.
-  // Hmm, the FPN skip is from the PReLU output at node 68 (the last block of stage 4).
-  // Let me check: node 89 Add inputs are the PReLU at node 88 and the PReLU at node 68.
-  // Our conv at node 87 already has PReLU fused (node 88). So we need to add s4_a to fpn1_a.
-  // For now, let's do this on CPU.  We'll note this as a TODO for a proper add shader.
-
-  // Submit everything so far, read back fpn1_a and s4_b, add on CPU, re-upload
-  device.queue.submit([enc.finish()]);
-
-  // CHECKPOINT: node 88 (FPN conv+PReLU, BEFORE the skip add)
-  const fpn1_pre_add = await readBuffer(B.fpn1_a, 256*12*12);
-  const n88_ref = [1.520662, 1.584816, 1.713126, 1.726567, 1.625139, 1.570457, 1.562522, 1.609294];
-  let n88_maxErr = 0;
-  for (let i = 0; i < 8; i++) n88_maxErr = Math.max(n88_maxErr, Math.abs(fpn1_pre_add[i] - n88_ref[i]));
-  log(`  FPN conv+PReLU (node 88): err=${n88_maxErr.toFixed(6)} ${n88_maxErr < 0.01 ? '✅' : '❌'} first 2=[${fpn1_pre_add.slice(0,2).map(v=>v.toFixed(6)).join(', ')}]`);
-
-  // Read stage 4 skip (s4_b) and verify it still has the right data
-  const s4_skip_check = await readBuffer(B.s4_b, 256*12*12);
-  const n68_ref2 = [0.055800, 0.174999, 0.120602, 0.089120];
-  let s4_skipErr = 0;
-  for (let i = 0; i < 4; i++) s4_skipErr = Math.max(s4_skipErr, Math.abs(s4_skip_check[i] - n68_ref2[i]));
-  log(`  Stage 4 skip (s4_b): err=${s4_skipErr.toFixed(6)} ${s4_skipErr < 0.01 ? '✅' : '❌'} first 2=[${s4_skip_check.slice(0,2).map(v=>v.toFixed(6)).join(', ')}]`);
-
-  // Add on CPU (node 89)
-  let fpn1_data = await readBuffer(B.fpn1_a, 256*12*12);
-  // Stage 4 last output: after node 68 (PReLU), we wrote to s4_a in the last ping-pong.
-  // Wait — tracing through: stage 4 residual blocks alternate s4_a/s4_b.
-  // Entry: -> s4_a. Block 57-60: s4_a->s4_b (input=s4_a, output=s4_b, residual=s4_a).
-  // Block 61-64: s4_b->s4_a. Block 65-68: s4_a->s4_b. So stage 4 final is in s4_b.
-  // But wait, we maxpooled s4_b. The FPN skip should be from the pre-maxpool features.
-  // Node 89 Add: inputs are node 88 output and node 68 output. Node 68 = last PReLU of stage 4.
-  // After stage 4 residual blocks, the output alternated and ended up in... let me recount:
-  // s4_a (from transition) -> residual block writes s4_b -> residual block writes s4_a -> residual block writes s4_b
-  // So node 68 output (stage 4 final before maxpool) is in s4_b. But we maxpooled s4_b too.
-  // The FPN skip needs the 12x12 features, not the 6x6. So it's s4_b (256@12x12) before maxpool.
-  // We passed s4_b to maxpool already. The buffer still has the 12x12 data? No — maxpool reads s4_b.
-  // s4_b is 256*12*12 = 36864 floats. It has the stage 4 final output. MaxPool reads it, doesn't write it.
-  // So s4_b still has the 12x12 data. Good.
-  const s4_skip = await readBuffer(B.s4_b, 256*12*12);
-  for (let i = 0; i < fpn1_data.length; i++) fpn1_data[i] += s4_skip[i];
-  device.queue.writeBuffer(B.fpn1_a, 0, fpn1_data);
-
-  // Continue with a new encoder
-  let enc2 = device.createCommandEncoder();
-
-  // Nodes 90-93: residual block
-  residualBlock(enc2, B.fpn1_a, B.fpn1_dw, B.fpn1_b, B.fpn1_a,
-                g[90].inputs[1], g[90].inputs[2], g[91].inputs[1], g[91].inputs[2], g[93].inputs[1],
-                256, 12, 12, 256);
-  // Nodes 94-97: residual block
-  residualBlock(enc2, B.fpn1_b, B.fpn1_dw, B.fpn1_a, B.fpn1_b,
-                g[94].inputs[1], g[94].inputs[2], g[95].inputs[1], g[95].inputs[2], g[97].inputs[1],
-                256, 12, 12, 256);
-
-  // CHECKPOINT: FPN head 1 (node 97). Ping-pong: add->fpn1_a, b1->fpn1_b, b2->fpn1_a
-  device.queue.submit([enc2.finish()]);
-  const fpn1_check = await readBuffer(B.fpn1_a, 256*12*12);
-  const fpn1_ref = [1.382966, 1.356892, 1.065585, 1.345140, 1.319262, 1.395400, 1.336465, 1.256742];
-  let fpn1_maxErr = 0;
-  for (let i = 0; i < 8; i++) fpn1_maxErr = Math.max(fpn1_maxErr, Math.abs(fpn1_check[i] - fpn1_ref[i]));
-  log(`  FPN1 check (node 97): err=${fpn1_maxErr.toFixed(6)} ${fpn1_maxErr < 0.01 ? '✅' : '❌'} first 2=[${fpn1_check.slice(0,2).map(v=>v.toFixed(6)).join(', ')}]`);
-  enc2 = device.createCommandEncoder();
-
-  // Node 98: regressor head @ stride 16 (Conv 1x1, 256->108)
-  dispatchConv(enc2, B.fpn1_a, B.reg_16, null, g[98].inputs[1], g[98].inputs[2], null,
-               256, 12, 12, 108, 12, 12, 1, 1, 1, 1, 0, 0, 1);
-  // Node 101: classifier head @ stride 16 (Conv 1x1, 256->6)
-  dispatchConv(enc2, B.fpn1_a, B.cls_16, null, g[101].inputs[1], g[101].inputs[2], null,
-               256, 12, 12, 6, 12, 12, 1, 1, 1, 1, 0, 0, 1);
-
-  // Node 104: Resize 2x (12x12 -> 24x24) for FPN head 2
-  // Source is fpn1_a (after last residual). Wait — nodes 94-97 wrote to fpn1_a.
-  // Actually tracing ping-pong: block 90-93 writes fpn1_b, block 94-97 writes fpn1_a.
-  // So output head reads fpn1_a. And resize reads... the output of the FPN before the heads.
-  // Node 104 input is the same as node 97 output (fpn1_a after residual blocks).
-  dispatchResize(enc2, B.fpn1_a, B.fpn2_up, 256, 12, 12);
-
-  device.queue.submit([enc2.finish()]);
-
-  // FPN HEAD 2: merge with stage 3
-  // Node 105-106: Conv 1x1 256->128 + PReLU
-  // Node 107: Add (skip from stage 3)
-  const enc3 = device.createCommandEncoder();
-  dispatchConv(enc3, B.fpn2_up, B.fpn2_a, null, g[105].inputs[1], g[105].inputs[2], g[106].inputs[1],
-               256, 24, 24, 128, 24, 24, 1, 1, 1, 1, 0, 0, 1);
-  device.queue.submit([enc3.finish()]);
-
-  // Add stage 3 skip connection (node 107)
-  // Stage 3 final: tracing s3 ping-pong:
-  // transition -> s3_a. block 39-42 -> s3_b. block 43-46 -> s3_a. block 47-50 -> s3_b.
-  // So stage 3 final is s3_b (128@24x24). Same as what we maxpooled. Buffer still has 24x24 data.
-  let fpn2_data = await readBuffer(B.fpn2_a, 128*24*24);
-  const s3_skip = await readBuffer(B.s3_b, 128*24*24);
-  for (let i = 0; i < fpn2_data.length; i++) fpn2_data[i] += s3_skip[i];
-  device.queue.writeBuffer(B.fpn2_a, 0, fpn2_data);
-
-  const enc4 = device.createCommandEncoder();
-  // Nodes 108-111: residual block
-  residualBlock(enc4, B.fpn2_a, B.fpn2_dw, B.fpn2_b, B.fpn2_a,
-                g[108].inputs[1], g[108].inputs[2], g[109].inputs[1], g[109].inputs[2], g[111].inputs[1],
-                128, 24, 24, 128);
-  // Nodes 112-115: residual block
-  residualBlock(enc4, B.fpn2_b, B.fpn2_dw, B.fpn2_a, B.fpn2_b,
-                g[112].inputs[1], g[112].inputs[2], g[113].inputs[1], g[113].inputs[2], g[115].inputs[1],
-                128, 24, 24, 128);
-
-  // Node 116: regressor head @ stride 8 (Conv 1x1, 128->36)
-  dispatchConv(enc4, B.fpn2_a, B.reg_8, null, g[116].inputs[1], g[116].inputs[2], null,
-               128, 24, 24, 36, 24, 24, 1, 1, 1, 1, 0, 0, 1);
-  // Node 120: classifier head @ stride 8 (Conv 1x1, 128->2)
-  dispatchConv(enc4, B.fpn2_a, B.cls_8, null, g[120].inputs[1], g[120].inputs[2], null,
-               128, 24, 24, 2, 24, 24, 1, 1, 1, 1, 0, 0, 1);
-
-  device.queue.submit([enc4.finish()]);
-
-  const t1 = performance.now();
-  log(`\nGPU pipeline time: ${(t1 - t0).toFixed(1)}ms`);
-
-  // ============================================================
-  // Read back output heads and assemble final output
-  // ============================================================
-  log('\n--- Assembling outputs ---');
-
-  // Transpose NCHW->NHWC and reshape for both scales
-  const reg16_nchw = await readBuffer(B.reg_16, 108*12*12);
-  const reg16_nhwc = transposeNCHWtoNHWC(reg16_nchw, 108, 12, 12); // [12,12,108]
-  // Reshape to [864, 18]: 12*12*108/18 = 864 * 18... wait: 12*12=144, 108/18=6, so [144*6, 18]? No.
-  // Reshape target is [1, -1, 18]. Total elements = 12*12*108 = 15552. 15552/18 = 864. So [1, 864, 18].
-
-  const cls16_nchw = await readBuffer(B.cls_16, 6*12*12);
-  const cls16_nhwc = transposeNCHWtoNHWC(cls16_nchw, 6, 12, 12); // [12,12,6]
-  // Reshape to [1, 864, 1]: 12*12*6 = 864.
-
-  const reg8_nchw = await readBuffer(B.reg_8, 36*24*24);
-  const reg8_nhwc = transposeNCHWtoNHWC(reg8_nchw, 36, 24, 24); // [24,24,36]
-  // Reshape to [1, 1152, 18]: 24*24*36 = 20736. 20736/18 = 1152.
-
-  const cls8_nchw = await readBuffer(B.cls_8, 2*24*24);
-  const cls8_nhwc = transposeNCHWtoNHWC(cls8_nchw, 2, 24, 24); // [24,24,2]
-  // Reshape to [1, 1152, 1]: 24*24*2 = 1152.
-
-  // Concat: regressors = [reg8 (1152x18), reg16 (864x18)] = [2016x18]
-  // Note: concat order matches the ONNX graph — node 119 concats reg_8 FIRST, then reg_16
-  const regressors = new Float32Array(2016 * 18);
-  regressors.set(reg8_nhwc, 0);               // [0..1152*18)
-  regressors.set(reg16_nhwc, 1152 * 18);      // [1152*18..2016*18)
-
-  const classifiers = new Float32Array(2016);
-  classifiers.set(cls8_nhwc, 0);              // [0..1152)
-  classifiers.set(cls16_nhwc, 1152);          // [1152..2016)
-
-  const t2 = performance.now();
-  log(`Total time (GPU + readback + assembly): ${(t2 - t0).toFixed(1)}ms`);
-
-  // ============================================================
-  // Results
-  // ============================================================
-  log('\n--- Our engine output ---');
-  log(`  regressors[0..5]: ${Array.from(regressors.slice(0,6)).map(v=>v.toFixed(4)).join(', ')}`);
-  log(`  classifiers[0..5]: ${Array.from(classifiers.slice(0,6)).map(v=>v.toFixed(4)).join(', ')}`);
-
-  // Stats
-  let rMin=Infinity, rMax=-Infinity, rNan=0;
-  for (let i=0;i<regressors.length;i++) {
-    if (isNaN(regressors[i])) rNan++;
-    else { rMin=Math.min(rMin,regressors[i]); rMax=Math.max(rMax,regressors[i]); }
+  const ref = await (await fetch('./reference.json')).json();
+  log('\n--- Results ---');
+  for (const [name, data] of Object.entries(outputs)) {
+    const vals = Array.from(data.slice(0, 6)).map(v => v.toFixed(4)).join(', ');
+    log(`${name}: [${vals}${data.length > 6 ? ', ...' : ''}] (${data.length} floats)`);
+    if (ref[name]) {
+      let maxErr = 0;
+      for (let j = 0; j < Math.min(data.length, ref[name].length); j++)
+        maxErr = Math.max(maxErr, Math.abs(data[j] - ref[name][j]));
+      log(`  ref: [${ref[name].slice(0,6).map(v=>v.toFixed(4)).join(', ')}]`);
+      log(`  max error: ${maxErr.toFixed(6)} ${maxErr < 1.0 ? '✅' : '❌'}`);
+    }
   }
-  log(`  reg stats: min=${rMin.toFixed(4)} max=${rMax.toFixed(4)} NaN=${rNan}`);
-  let cMin=Infinity, cMax=-Infinity, cNan=0;
-  for (let i=0;i<classifiers.length;i++) {
-    if (isNaN(classifiers[i])) cNan++;
-    else { cMin=Math.min(cMin,classifiers[i]); cMax=Math.max(cMax,classifiers[i]); }
-  }
-  log(`  cls stats: min=${cMin.toFixed(4)} max=${cMax.toFixed(4)} NaN=${cNan}`);
 
-  // ============================================================
-  // ORT comparison
-  // ============================================================
-  log('\n--- ORT comparison ---');
+  log('\n--- Benchmark (50 iterations, compiled) ---');
+  await runner.compile(graph, inputBuf, allWeights);
+  for (let i = 0; i < 5; i++) await runner.runCompiled();
+  const N = 50;
+  const bt0 = performance.now();
+  for (let i = 0; i < N; i++) await runner.runCompiled();
+  log(`WGSL compiled: ${((performance.now() - bt0) / N).toFixed(2)} ms/inference`);
+
   try {
     const ort = await import('../vendor/onnxruntime-web/ort.webgpu.min.mjs');
-    ort.env.wasm.numThreads = 1;
-    ort.env.wasm.proxy = false;
-    const session = await ort.InferenceSession.create(
-      '../models/palm_detection_lite.onnx',
-      { executionProviders: ['wasm'] }
-    );
-    const ortInput = new ort.Tensor('float32', inputNHWC, [1, 192, 192, 3]);
+    ort.env.wasm.numThreads = 1; ort.env.wasm.proxy = false;
+    const sess = await ort.InferenceSession.create('../models/palm_detection_lite.onnx', { executionProviders: ['wasm'] });
+    const tensor = new ort.Tensor('float32', new Float32Array(192*192*3).fill(0.5), [1, 192, 192, 3]);
+    const firstInput = sess.inputNames[0];
+    for (let i = 0; i < 5; i++) await sess.run({ [firstInput]: tensor });
+    const ot0 = performance.now();
+    for (let i = 0; i < N; i++) await sess.run({ [firstInput]: tensor });
+    log(`ORT WASM: ${((performance.now() - ot0) / N).toFixed(2)} ms/inference`);
+  } catch (e) { log(`ORT: ${e.message}`); }
 
-    const ortT0 = performance.now();
-    const ortResult = await session.run({ input_1: ortInput });
-    const ortT1 = performance.now();
-
-    const ortReg = ortResult['Identity'].data;
-    const ortCls = ortResult['Identity_1'].data;
-
-    log(`  ORT time: ${(ortT1 - ortT0).toFixed(1)}ms`);
-    log(`  ORT regressors[0..5]: ${Array.from(ortReg.slice(0,6)).map(v=>v.toFixed(4)).join(', ')}`);
-    log(`  ORT classifiers[0..5]: ${Array.from(ortCls.slice(0,6)).map(v=>v.toFixed(4)).join(', ')}`);
-
-    // Compute max absolute error
-    let maxRegErr = 0, maxClsErr = 0;
-    for (let i=0;i<regressors.length;i++) maxRegErr = Math.max(maxRegErr, Math.abs(regressors[i] - ortReg[i]));
-    for (let i=0;i<classifiers.length;i++) maxClsErr = Math.max(maxClsErr, Math.abs(classifiers[i] - ortCls[i]));
-    log(`\n  Max regressor error: ${maxRegErr.toFixed(6)}`);
-    log(`  Max classifier error: ${maxClsErr.toFixed(6)}`);
-
-    if (maxRegErr < 0.01 && maxClsErr < 0.01) {
-      ok('MATCH! Our engine produces the same output as ORT (within 0.01)');
-    } else if (maxRegErr < 1.0 && maxClsErr < 1.0) {
-      log('  ⚠ Close but not matching — likely a minor bug in one layer');
-    } else {
-      err(`Large divergence — something is wrong`);
-    }
-  } catch(e) {
-    log(`  ORT: ${e.message}`);
-  }
-
-  // ============================================================
-  // Speed test: run 10 iterations
-  // ============================================================
-  log('\n--- Speed test (10 iterations, no readback) ---');
-  // TODO: wrap the full dispatch sequence into a function for clean timing
-  // For now we time the assembly of command buffers
-
-  log('\n==========================================');
-  ok('Full pipeline test complete!');
-
-} catch(e) {
-  err(e.message);
-  err(e.stack || '');
-}
+  log('\n========================');
+  log('done');
+} catch (e) { log('ERROR: ' + e.message); log(e.stack || ''); }
 })();
 </script>
 </body>

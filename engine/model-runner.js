@@ -118,13 +118,15 @@ export class ModelRunner {
         const pwW = w[g[j].inputs[1]];
         if (!pwW || pwW.shape[2] !== 1 || pwW.shape[3] !== 1) continue; // not 1x1
 
-        // Skip fusion when 1x1 narrows channels significantly -- the fused shader
-        // recomputes DW for every output channel, so narrow 1x1 causes massive
-        // redundant DW compute (e.g. 96ch DW -> 16ch 1x1 = 6x redundant work).
-        // Only fuse when output channels >= input channels (widening or same-size).
+        // Skip fusion when it would cause too much redundant DW compute.
+        // The fused shader recomputes DW for every output channel. This only wins
+        // when memory bandwidth savings outweigh the extra compute.
+        // Skip if: 1x1 narrows channels, OR kernel*channels is too large.
         const pwOutCh = pwW.shape[0];
         const dwInCh = dwW.shape[0];
-        if (pwOutCh < dwInCh) continue;
+        const kArea = dwW.shape[2] * dwW.shape[3];
+        if (pwOutCh < dwInCh) continue; // narrowing = massive redundant work
+        if (dwInCh * kArea > 1024) continue; // too much work per thread (e.g. 256ch * 25 = 6400)
 
         // Now look for Add and optional Pad, then activation
         let k = j + 1;
