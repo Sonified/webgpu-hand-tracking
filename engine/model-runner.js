@@ -8,10 +8,11 @@
  */
 
 export class ModelRunner {
-  constructor(device, pipelines, weightBufs) {
+  constructor(device, pipelines, weightBufs, allWeightsBuf) {
     this.device = device;
-    this.P = pipelines;     // { conv2d, maxpool, resize, gemm, global_avg_pool, add }
+    this.P = pipelines;     // { conv2d, maxpool, resize, gemm, global_avg_pool, add, fused_block }
     this.W = weightBufs;    // weight name -> GPUBuffer
+    this.allWeightsBuf = allWeightsBuf; // single GPU buffer with ALL weights (for fused shader)
     this.dummy = device.createBuffer({ size: 4, usage: GPUBufferUsage.STORAGE });
     // Uniform buffer pool: reuse instead of creating per dispatch
     this._ubPool = [];
@@ -66,14 +67,183 @@ export class ModelRunner {
     };
 
     this._ubIdx = 0; // reset uniform buffer pool for this run
+
+    // --- Fused block pattern detection ---
+    // Pattern: Conv(DW) -> Conv(1x1) -> [Pad ->] Add -> Relu/PRelu/Clip
+    // Mark fuseable sequences so the main loop can dispatch fused_block instead.
+    const fusedBlocks = new Map(); // start index -> { dwIdx, pwIdx, padIdx?, addIdx, actIdx, actType }
+    const skipNodes = new Set();
+    if (this.P.fused_block && this.allWeightsBuf) {
+      for (let i = 0; i < g.length; i++) {
+        if (skipNodes.has(i)) continue;
+        const dw = g[i];
+        if (dw.op !== 'Conv') continue;
+        const dwW = w[dw.inputs[1]];
+        if (!dwW) continue;
+        // DW conv: group == input channels, kernel > 1
+        const dwGroup = dw.attrs?.group || 1;
+        if (dwGroup <= 1 || dwW.shape[2] <= 1) continue; // not depthwise
+
+        // Next must be 1x1 Conv consuming DW output
+        const j = i + 1;
+        if (j >= g.length || g[j].op !== 'Conv') continue;
+        if (g[j].inputs[0] !== dw.outputs[0]) continue;
+        const pwW = w[g[j].inputs[1]];
+        if (!pwW || pwW.shape[2] !== 1 || pwW.shape[3] !== 1) continue; // not 1x1
+
+        // Now look for Add and optional Pad, then activation
+        let k = j + 1;
+        let padIdx = -1, addIdx = -1, actIdx = -1, actType = 0;
+
+        // Optional Pad (on the residual path, not after 1x1)
+        // The Add's inputs are: (padded_residual, conv1x1_output) or (residual, conv1x1_output)
+        // We need to find the Add that consumes the 1x1 output
+        if (k < g.length) {
+          // Scan ahead a few nodes for the Add that uses the 1x1 output
+          for (let look = k; look < Math.min(k + 3, g.length); look++) {
+            if (g[look].op === 'Add' && (g[look].inputs[0] === g[j].outputs[0] || g[look].inputs[1] === g[j].outputs[0])) {
+              addIdx = look;
+              break;
+            }
+          }
+        }
+        if (addIdx === -1) continue; // no residual Add found
+
+        // Check for Pad between 1x1 and Add (on the OTHER input to Add)
+        const addOtherInput = g[addIdx].inputs[0] === g[j].outputs[0] ? g[addIdx].inputs[1] : g[addIdx].inputs[0];
+        for (let look = j + 1; look < addIdx; look++) {
+          if (g[look].op === 'Pad' && g[look].outputs[0] === addOtherInput) {
+            padIdx = look;
+            break;
+          }
+        }
+
+        // Check for activation after Add
+        const nextAfterAdd = addIdx + 1;
+        if (nextAfterAdd < g.length) {
+          const act = g[nextAfterAdd];
+          if (act.inputs[0] === g[addIdx].outputs[0]) {
+            if (act.op === 'Relu') { actIdx = nextAfterAdd; actType = 3; }
+            else if (act.op === 'Clip') { actIdx = nextAfterAdd; actType = 2; }
+            else if (act.op === 'PRelu') { actIdx = nextAfterAdd; actType = 1; }
+          }
+        }
+
+        // We have a fuseable block!
+        fusedBlocks.set(i, { dwIdx: i, pwIdx: j, padIdx, addIdx, actIdx, actType });
+        skipNodes.add(i);   // DW conv
+        skipNodes.add(j);   // 1x1 conv
+        if (padIdx >= 0) skipNodes.add(padIdx);
+        skipNodes.add(addIdx);
+        if (actIdx >= 0) skipNodes.add(actIdx);
+      }
+      if (fusedBlocks.size > 0 && !this._fusionLogged) {
+        console.log(`[fusion] ${fusedBlocks.size} blocks fused, ${skipNodes.size} nodes skipped`);
+        this._fusionLogged = true;
+      }
+    }
+
     let enc = device.createCommandEncoder();
 
     for (let i = 0; i < g.length; i++) {
+      if (skipNodes.has(i) && !fusedBlocks.has(i)) continue; // skip nodes consumed by fusion
       const node = g[i];
       const op = node.op;
       const attrs = node.attrs || {};
       const inp = node.inputs;
       const out = node.outputs[0];
+
+      // --- Fused residual block dispatch ---
+      if (fusedBlocks.has(i)) {
+        const fb = fusedBlocks.get(i);
+        const dwNode = g[fb.dwIdx];
+        const pwNode = g[fb.pwIdx];
+        const addNode = g[fb.addIdx];
+        const dwAttrs = dwNode.attrs || {};
+        const dwWName = dwNode.inputs[1];
+        const dwBName = dwNode.inputs[2];
+        const pwWName = pwNode.inputs[1];
+        const pwBName = pwNode.inputs[2];
+        const dwWShape = w[dwWName].shape;
+        const pwWShape = w[pwWName].shape;
+        const inShape = shapes[dwNode.inputs[0]];
+        const stride = dwAttrs.strides?.[0] || 1;
+        const [, iC, iH, iW] = inShape;
+        const kSize = dwWShape[2];
+        const pads = dwAttrs.pads || [0, 0, 0, 0]; // [top, left, bottom, right]
+        const padT = pads[0], padL = pads[1], padB = pads[2], padR = pads[3];
+        const oC = pwWShape[0];
+        const oH = Math.floor((iH + padT + padB - kSize) / stride) + 1;
+        const oW = Math.floor((iW + padL + padR - kSize) / stride) + 1;
+
+        // Figure out final output name and shape
+        const finalOut = fb.actIdx >= 0 ? g[fb.actIdx].outputs[0] : addNode.outputs[0];
+        const outShape = [1, oC, oH, oW];
+        shapes[finalOut] = outShape;
+        // Also set shapes for intermediate nodes so downstream can reference them
+        shapes[dwNode.outputs[0]] = [1, iC, oH, oW];
+        shapes[pwNode.outputs[0]] = [1, oC, oH, oW];
+        shapes[addNode.outputs[0]] = outShape;
+
+        const outBuf = getOrAlloc(finalOut, outShape);
+        // Set all intermediate tensor names to point to the same output
+        tensors[dwNode.outputs[0]] = outBuf;
+        tensors[pwNode.outputs[0]] = outBuf;
+        tensors[addNode.outputs[0]] = outBuf;
+
+        // Residual input: the other side of the Add (not the 1x1 output)
+        let residualInput;
+        let hasResidual = 1;
+        let resCh = oC;
+        if (fb.padIdx >= 0) {
+          // Padded residual: the Pad's input is the actual residual source
+          const padNode = g[fb.padIdx];
+          residualInput = tensors[padNode.inputs[0]];
+          const padInShape = shapes[padNode.inputs[0]];
+          resCh = padInShape ? padInShape[1] : oC;
+          hasResidual = 2;
+          shapes[padNode.outputs[0]] = outShape;
+          tensors[padNode.outputs[0]] = outBuf;
+        } else {
+          const addOther = addNode.inputs[0] === pwNode.outputs[0] ? addNode.inputs[1] : addNode.inputs[0];
+          residualInput = tensors[addOther];
+        }
+
+        // PReLU slope offset
+        let actOff = 0;
+        if (fb.actType === 1 && fb.actIdx >= 0) {
+          const slopeName = g[fb.actIdx].inputs[1];
+          actOff = w[slopeName].offset;
+        }
+
+        // Build descriptor (20 u32s = 80 bytes)
+        const desc = new Uint32Array([
+          iC, kSize, stride, padT, padL, padB, padR,
+          w[dwWName].offset, w[dwBName].offset,
+          oC, w[pwWName].offset, w[pwBName].offset,
+          iH, iW, oH, oW,
+          hasResidual, resCh,
+          fb.actType, actOff,
+        ]);
+        const pb = this._getUniformBuf(desc.byteLength);
+        device.queue.writeBuffer(pb, 0, desc);
+
+        const pass = enc.beginComputePass();
+        pass.setPipeline(this.P.fused_block);
+        pass.setBindGroup(0, device.createBindGroup({
+          layout: this.P.fused_block.getBindGroupLayout(0),
+          entries: [
+            { binding: 0, resource: { buffer: pb } },
+            { binding: 1, resource: { buffer: tensors[dwNode.inputs[0]] } },
+            { binding: 2, resource: { buffer: this.allWeightsBuf } },
+            { binding: 3, resource: { buffer: residualInput || this.dummy } },
+            { binding: 4, resource: { buffer: outBuf } },
+          ],
+        }));
+        pass.dispatchWorkgroups(Math.ceil(oW / 8), Math.ceil(oH / 8), oC);
+        pass.end();
+        continue;
+      }
 
       if (op === 'Transpose') {
         // NHWC -> NCHW: handle on CPU before calling run(), or use a transpose shader

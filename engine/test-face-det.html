@@ -13,6 +13,8 @@ const log = s => { L.textContent += s + '\n'; console.log(s); };
 
 (async () => {
 try {
+  log(`Started: ${new Date().toISOString()}`);
+  await import('./session-timer.mjs').then(m => m.logBanner(log)).catch(() => {});
   if (!navigator.gpu) { log('No WebGPU'); return; }
   const adapter = await navigator.gpu.requestAdapter();
   const device = await adapter.requestDevice();
@@ -38,8 +40,13 @@ try {
     conv2d: await mkP('conv2d'), maxpool: await mkP('maxpool'), resize: await mkP('resize'),
     gemm: await mkP('gemm'), global_avg_pool: await mkP('global_avg_pool'),
     add: await mkP('add'), pad_channels: await mkP('pad_channels'),
+    fused_block: await mkP('fused_block'),
   };
   log('Shaders compiled');
+
+  // Consolidated weight buffer for fused shader (indexes by offset)
+  const allWeightsBuf = device.createBuffer({ size: allWeights.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+  device.queue.writeBuffer(allWeightsBuf, 0, allWeights);
 
   // Input: NCHW [1, 3, 128, 128], 0.5 gray
   const inputNCHW = new Float32Array(3 * 128 * 128).fill(0.5);
@@ -49,7 +56,7 @@ try {
   });
   device.queue.writeBuffer(inputBuf, 0, inputNCHW);
 
-  const runner = new ModelRunner(device, P, W);
+  const runner = new ModelRunner(device, P, W, allWeightsBuf);
 
   log('\nRunning inference...');
   const t0 = performance.now();
