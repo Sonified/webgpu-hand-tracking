@@ -27,7 +27,7 @@ const logLandmark = makeLogger(2000);
 class PalmWorker {
   constructor() {
     this.worker = new Worker(
-      new URL('./palm-worker.js', import.meta.url),
+      new URL('./palm-worker-wgsl.js', import.meta.url),
       { type: 'module' }
     );
     this.pendingResolve = null;
@@ -82,7 +82,7 @@ class PalmWorker {
 class LandmarkWorker {
   constructor() {
     this.worker = new Worker(
-      new URL('./landmark-worker.js', import.meta.url),
+      new URL('./landmark-worker-wgsl.js', import.meta.url),
       { type: 'module' }
     );
     this.pendingResolve = null;
