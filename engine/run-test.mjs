@@ -12,6 +12,8 @@ import { readFileSync, existsSync } from 'fs';
 import { join, extname } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { homedir } from 'os';
+import { printBanner } from './session-timer.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -24,7 +26,18 @@ const MIME = {
 };
 
 const server = createServer((req, res) => {
-  let path = join(ROOT, decodeURIComponent(req.url.split('?')[0]));
+  const urlPath = decodeURIComponent(req.url.split('?')[0]);
+
+  // Virtual route: serve ~/.session-timer/ files for browser access
+  if (urlPath.startsWith('/.session-timer/')) {
+    const f = join(homedir(), urlPath);
+    res.setHeader('Content-Type', 'text/plain');
+    if (existsSync(f)) { res.writeHead(200); res.end(readFileSync(f, 'utf8')); }
+    else { res.writeHead(404); res.end(''); }
+    return;
+  }
+
+  let path = join(ROOT, urlPath);
   if (path.endsWith('/')) path += 'index.html';
 
   if (!existsSync(path)) {
@@ -48,6 +61,8 @@ const server = createServer((req, res) => {
 const PORT = 9222;
 
 async function run() {
+  await printBanner();
+
   // Start server
   await new Promise(r => server.listen(PORT, r));
   console.log(`Server running on http://localhost:${PORT}`);
@@ -113,6 +128,8 @@ async function run() {
     console.log('\x1b[33m⚠ Test completed but no match/error verdict found\x1b[0m');
   }
   console.log('='.repeat(50));
+
+  await printBanner();
 
   await browser.close();
   server.close();

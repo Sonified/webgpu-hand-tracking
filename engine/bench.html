@@ -11,6 +11,8 @@ const log = s => { L.textContent += s + '\n'; console.log(s); };
 
 (async () => {
 try {
+  log(`Started: ${new Date().toISOString()}`);
+  await import('./session-timer.mjs').then(m => m.logBanner(log)).catch(() => {});
   const N = 50; // iterations
 
   // ============================================================
