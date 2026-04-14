@@ -496,45 +496,62 @@ All 4 outputs match ORT (landmarks, hand flag, handedness, world landmarks). Gen
 **Step 4: Face detector + face landmark ✅ DONE (blendshapes still TODO)**
 Both models verified. Face detector needed standalone Relu fix. Face landmark needed standalone PReLU fix + PReLU re-fusion from decomposed form. Blendshape model (face_blendshapes.onnx) not yet extracted.
 
-**Step 5: Optimize + wire into demo (NEXT)**
-- **Quick win: pre-allocate pipelines** — currently creating uniform buffers per dispatch. Pool and reuse. See MEGA_SHADER_DESIGN.md.
-- **Level 1 fusion: residual block mega-shaders** — fuse DW Conv + 1x1 Conv + Add + Activation into single dispatches. Design doc ready.
-- **Move standalone PReLU/Relu/Sigmoid to GPU** — currently 34 standalone PReLUs in face landmark run on CPU (read-back + re-upload). Need GPU dispatch.
-- **Wire into ball-toss demo** — replace ORT workers with WGSL engine. The existing `pipeline.js` and `face-pipeline.js` worker architecture stays; just swap the inference call.
-- **Real camera input benchmark** — current benchmarks use 0.5 gray images. Need to test with actual camera frames for realistic performance numbers.
-- **Delete ORT** — remove `vendor/onnxruntime-web/` (23MB), remove all ORT worker code. Library becomes pure WebGPU.
+**Step 5: Optimize ✅ DONE (2026-04-13)**
+
+Five optimization passes in one session, each building on the last:
+
+1. **GPU PReLU + uniform buffer pool** — moved 34 standalone PReLU ops from CPU readback to GPU dispatch (add.wgsl mode 3). Pooled uniform buffers across dispatches. Face landmark: 53.61ms -> 14.68ms.
+
+2. **Level 1 kernel fusion** — fused DW Conv + 1x1 Conv + Add + Activation into single `fused_block.wgsl` dispatch. DW output stays in registers, never hits memory. Smart gating: skip fusion when 1x1 narrows channels (redundant DW recompute) or when `dwInCh * kArea > 1024` (too much work per thread for large kernels). Handles asymmetric padding for stride-2 blocks and optional DW activation (ReLU6/ReLU between DW and 1x1).
+
+3. **GPU transpose** — NCHW->NHWC transpose moved from CPU readback to `transpose_nhwc.wgsl` compute shader. Output head assembly (Concat) now stays entirely on GPU using `copyBufferToBuffer`.
+
+4. **Pre-compiled command replay** — `compile()` walks the graph once, capturing all dispatches, bind groups, and buffer copies into a flat steps array. `runCompiled()` replays with zero graph walking, zero allocation, zero bind group creation.
+
+5. **Pre-allocated readback** — staging buffers for output readback created once during `compile()`, reused every frame. Output copies baked into the same command encoder as dispatches. Parallel `mapAsync` on all outputs.
+
+**Benchmark results (headless Chrome, M1 Max, compiled path, 50 iterations):**
+
+| Model | Before | After | ORT WASM | vs ORT | Speedup |
+|---|---|---|---|---|---|
+| Palm Detector | 18.61ms | **13.32ms** | 27.47ms | **2.06x faster** | 1.40x |
+| Hand Landmark | 12.67ms | **6.14ms** | 17.31ms | **2.82x faster** | 2.06x |
+| Face Detector | 12.70ms | **3.30ms** | 3.11ms | ~parity | 3.85x |
+| Face Landmark | 53.61ms | **8.49ms** | 13.41ms | **1.58x faster** | 6.31x |
+
+Every model beats or matches ORT WASM. Three out of four are 1.5-2.8x faster. Face landmark improved 6.3x from the naive baseline.
+
+**vs MediaPipe (Google's sealed WASM/WebGL SDK):**
+MediaPipe's browser SDK runs at roughly 30-40ms combined for hand + face in the ball-toss demo, bottlenecked by synchronous `glReadPixels` readbacks (8-22ms each). Our compiled WGSL engine runs the same models at:
+- Palm + face detection in parallel: **max(13.32, 3.30) = 13.32ms**
+- Then hand landmark per detected hand: **6.14ms**
+- Total per-frame inference: **~19ms = 52 fps** (vs MediaPipe's ~25-33 fps)
+- And we haven't even wired it in yet -- once running in workers with parallel hand slots, effective latency drops further.
+
+**What's left for Step 6: Wire into demo**
+- Replace ORT workers with WGSL engine in `pipeline.js` / `face-pipeline.js`
+- Delete `vendor/onnxruntime-web/` (23MB gone)
+- Real camera input benchmark (current benchmarks use 0.5 gray images)
+- Extract face blendshape model (face_blendshapes.onnx)
 
 **Current engine files (in `engine/` directory):**
 ```
 conv2d.wgsl          — Conv2D + PReLU/ReLU6/ReLU + residual Add (the workhorse)
+fused_block.wgsl     — Fused DW Conv -> [Act] -> 1x1 Conv -> [Residual] -> Activation
 maxpool.wgsl         — MaxPool 2x2 + channel padding
 resize.wgsl          — Bilinear 2x upsample (FPN heads)
-add.wgsl             — Element-wise add/relu (modes: add, relu, add+relu)
+transpose_nhwc.wgsl  — NCHW -> NHWC transpose for output heads
+add.wgsl             — Element-wise ops: add, relu, add+relu, prelu
 pad_channels.wgsl    — Channel zero-padding for residual connections
 gemm.wgsl            — Matrix multiply + optional sigmoid (FC layers)
 global_avg_pool.wgsl — Global average pooling
-model-runner.js      — Generic graph walker: reads JSON, dispatches shaders
-test.html            — Palm detector full pipeline test + ORT comparison
-test-hand.html       — Hand landmark test
-test-face-det.html   — Face detector test
-test-face-lm.html    — Face landmark test
-bench.html/bench.mjs — Benchmark harness
-benchmark-baseline.md — Pre-optimization benchmark numbers
-MEGA_SHADER_DESIGN.md — Fusion optimization design doc
+model-runner.js      — Graph walker + compile/runCompiled for zero-overhead replay
+session-timer.mjs    — Session time tracking (reads ~/.session-timer/)
+test.html            — Palm detector test (ModelRunner + compiled)
+test-hand.html       — Hand landmark test (ModelRunner + compiled)
+test-face-det.html   — Face detector test (ModelRunner + compiled)
+test-face-lm.html    — Face landmark test (ModelRunner + compiled)
 ```
-
-**Benchmark baseline (headless Chrome, M1 Max, naive per-dispatch):**
-| Model | WGSL (ms) | ORT-GPU (ms) | ORT-CPU (ms) |
-|---|---|---|---|
-| Palm Detector | 18.61 | 33.41 | 29.59 |
-| Hand Landmark | 12.67 | 7.02 | 18.32 |
-| Face Detector | 12.70 | 3.73 | 3.07 |
-| Face Landmark | 53.61 | — | 14.49 |
-
-Palm is faster than ORT. Hand/face are slower due to dispatch overhead (50+ dispatches per model) and CPU-side PReLU/Relu/Sigmoid ops. The mega-shader fusion + pre-allocated pipelines should fix this.
-- The library is now pure WebGPU. ~50KB. Works on iOS Safari.
-- Benchmark the full pipeline against the ORT version
-- Ship it. Write the blog post. Tell Google.
 
 ### Future: model upgrades once the engine exists
 
