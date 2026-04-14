@@ -1,5 +1,5 @@
-// Fused residual block: DW Conv -> 1x1 Conv -> [Residual Add] -> Activation
-// Single dispatch replaces 3-4 separate dispatches.
+// Fused residual block: DW Conv -> [DW Act] -> 1x1 Conv -> [Residual Add] -> Activation
+// Single dispatch replaces 3-5 separate dispatches.
 // DW output never materializes to memory -- computed in registers and immediately
 // accumulated into the 1x1 conv output.
 
@@ -11,6 +11,7 @@ struct BlockDesc {
     dw_pad_l: u32,         // left
     dw_pad_b: u32,         // bottom
     dw_pad_r: u32,         // right
+    dw_act: u32,           // DW activation: 0=none, 2=ReLU6, 3=ReLU
     dw_w_off: u32,         // offset into weights[] for DW kernel
     dw_b_off: u32,         // offset into weights[] for DW bias
     pw_out_ch: u32,        // 1x1 output channels
@@ -44,24 +45,29 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     var pw_sum: f32 = weights[d.pw_b_off + oc];
 
     // Fused DW + 1x1: for each input channel, compute DW at (oh,ow),
-    // then immediately multiply by 1x1 weight and accumulate.
+    // apply optional DW activation, then multiply by 1x1 weight and accumulate.
     let kern = d.dw_kern;
     for (var ic: u32 = 0u; ic < d.dw_in_ch; ic++) {
         var dw_val: f32 = weights[d.dw_b_off + ic];
         for (var kh: u32 = 0u; kh < kern; kh++) {
             for (var kw: u32 = 0u; kw < kern; kw++) {
-                // Apply asymmetric padding
                 let ih_padded = oh * d.dw_stride + kh;
                 let iw_padded = ow * d.dw_stride + kw;
                 let ih = ih_padded - d.dw_pad_t;
                 let iw = iw_padded - d.dw_pad_l;
-                // Unsigned comparison: if ih wrapped negative it becomes huge (> in_h)
                 if (ih < d.in_h && iw < d.in_w) {
                     let in_idx = ic * d.in_h * d.in_w + ih * d.in_w + iw;
                     let w_idx = d.dw_w_off + ic * kern * kern + kh * kern + kw;
                     dw_val += input[in_idx] * weights[w_idx];
                 }
             }
+        }
+
+        // DW activation (between DW and 1x1)
+        if (d.dw_act == 2u) {
+            dw_val = clamp(dw_val, 0.0, 6.0);
+        } else if (d.dw_act == 3u) {
+            dw_val = max(dw_val, 0.0);
         }
 
         // Immediately accumulate into 1x1 output
@@ -81,7 +87,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         }
     }
 
-    // Activation
+    // Output activation
     if (d.act_type == 1u) {
         if (pw_sum < 0.0) { pw_sum *= weights[d.act_off + oc]; }
     } else if (d.act_type == 2u) {

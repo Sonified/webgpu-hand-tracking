@@ -84,12 +84,28 @@ export class ModelRunner {
         const dwGroup = dw.attrs?.group || 1;
         if (dwGroup <= 1 || dwW.shape[2] <= 1) continue; // not depthwise
 
-        // Next must be 1x1 Conv consuming DW output
-        const j = i + 1;
+        // Next: 1x1 Conv consuming DW output, or Clip/Relu then 1x1 Conv
+        let j = i + 1;
+        let dwActIdx = -1, dwActType = 0;
+        let dwOutName = dw.outputs[0];
+        if (j < g.length && (g[j].op === 'Clip' || g[j].op === 'Relu') && g[j].inputs[0] === dwOutName) {
+          dwActIdx = j;
+          dwActType = g[j].op === 'Clip' ? 2 : 3; // 2=ReLU6, 3=ReLU
+          dwOutName = g[j].outputs[0];
+          j++;
+        }
         if (j >= g.length || g[j].op !== 'Conv') continue;
-        if (g[j].inputs[0] !== dw.outputs[0]) continue;
+        if (g[j].inputs[0] !== dwOutName) continue;
         const pwW = w[g[j].inputs[1]];
         if (!pwW || pwW.shape[2] !== 1 || pwW.shape[3] !== 1) continue; // not 1x1
+
+        // Skip fusion when 1x1 narrows channels significantly -- the fused shader
+        // recomputes DW for every output channel, so narrow 1x1 causes massive
+        // redundant DW compute (e.g. 96ch DW -> 16ch 1x1 = 6x redundant work).
+        // Only fuse when output channels >= input channels (widening or same-size).
+        const pwOutCh = pwW.shape[0];
+        const dwInCh = dwW.shape[0];
+        if (pwOutCh < dwInCh) continue;
 
         // Now look for Add and optional Pad, then activation
         let k = j + 1;
@@ -111,6 +127,11 @@ export class ModelRunner {
 
         // Check for Pad between 1x1 and Add (on the OTHER input to Add)
         const addOtherInput = g[addIdx].inputs[0] === g[j].outputs[0] ? g[addIdx].inputs[1] : g[addIdx].inputs[0];
+
+        // Skip if residual path goes through MaxPool (can't fuse MaxPool into the block)
+        const residualProducer = g.find(n => n.outputs[0] === addOtherInput);
+        if (residualProducer && residualProducer.op === 'MaxPool') continue;
+
         for (let look = j + 1; look < addIdx; look++) {
           if (g[look].op === 'Pad' && g[look].outputs[0] === addOtherInput) {
             padIdx = look;
@@ -130,8 +151,9 @@ export class ModelRunner {
         }
 
         // We have a fuseable block!
-        fusedBlocks.set(i, { dwIdx: i, pwIdx: j, padIdx, addIdx, actIdx, actType });
+        fusedBlocks.set(i, { dwIdx: i, dwActIdx, dwActType, pwIdx: j, padIdx, addIdx, actIdx, actType });
         skipNodes.add(i);   // DW conv
+        if (dwActIdx >= 0) skipNodes.add(dwActIdx); // DW activation
         skipNodes.add(j);   // 1x1 conv
         if (padIdx >= 0) skipNodes.add(padIdx);
         skipNodes.add(addIdx);
@@ -182,12 +204,14 @@ export class ModelRunner {
         shapes[finalOut] = outShape;
         // Also set shapes for intermediate nodes so downstream can reference them
         shapes[dwNode.outputs[0]] = [1, iC, oH, oW];
+        if (fb.dwActIdx >= 0) shapes[g[fb.dwActIdx].outputs[0]] = [1, iC, oH, oW];
         shapes[pwNode.outputs[0]] = [1, oC, oH, oW];
         shapes[addNode.outputs[0]] = outShape;
 
         const outBuf = getOrAlloc(finalOut, outShape);
         // Set all intermediate tensor names to point to the same output
         tensors[dwNode.outputs[0]] = outBuf;
+        if (fb.dwActIdx >= 0) tensors[g[fb.dwActIdx].outputs[0]] = outBuf;
         tensors[pwNode.outputs[0]] = outBuf;
         tensors[addNode.outputs[0]] = outBuf;
 
@@ -216,9 +240,10 @@ export class ModelRunner {
           actOff = w[slopeName].offset;
         }
 
-        // Build descriptor (20 u32s = 80 bytes)
+        // Build descriptor (21 u32s = 84 bytes)
         const desc = new Uint32Array([
           iC, kSize, stride, padT, padL, padB, padR,
+          fb.dwActType || 0, // DW activation (0=none, 2=ReLU6, 3=ReLU)
           w[dwWName].offset, w[dwBName].offset,
           oC, w[pwWName].offset, w[pwBName].offset,
           iH, iW, oH, oW,
