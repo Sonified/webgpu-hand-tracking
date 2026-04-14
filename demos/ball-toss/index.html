@@ -2038,10 +2038,10 @@ backendSelect.addEventListener('change', async (e) => {
   for (const f of headFilters) f.reset();
   for (const hand of handFilters) for (const joint of hand) for (const f of joint) f.reset();
 
-  // Pause current backend. Don't destroy state — both backends stay preloaded
-  // so switching back is instant. Just stop the active frame loop.
+  // Tear down current backend to free GPU resources. Each backend grabs GPU
+  // resources just by being loaded, so keeping both alive causes contention.
   if (activeBackend === 'mediapipe') {
-    // MP frame loop stops naturally (sendMediaPipeFrames checks activeBackend)
+    teardownMediaPipe();
   } else {
     stopWebGPUVfcLoop();
   }
