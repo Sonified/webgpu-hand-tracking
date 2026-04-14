@@ -622,80 +622,70 @@ export class ModelRunner {
       }
 
       if (op === 'Concat') {
-        // For output heads: the inputs were transposed NCHW->NHWC then reshaped.
-        // The Transpose was a no-op on the buffer (just shape reinterpretation).
-        // We need to actually transpose the data and then concatenate.
-        // Submit pending GPU work first.
-        device.queue.submit([enc.finish()]);
+        // GPU transpose + concat: no CPU readback.
+        // Each input traces back through Reshape -> Transpose to the NCHW Conv output.
+        // We transpose NCHW->NHWC on GPU, then copyBufferToBuffer to assemble.
 
-        const arrays = [];
+        // First, figure out each input's NCHW shape by tracing the graph
+        const pieces = [];
         let totalFloats = 0;
         for (const inName of inp) {
           if (!tensors[inName]) continue;
-          const inShape = shapes[inName]; // should be [1, anchors, values]
           const buf = tensors[inName];
-
-          // Find the original NCHW tensor before transpose+reshape
-          // Walk back: reshape input = transpose output, transpose input = conv output
-          // The buffer has NCHW data. We need to transpose to NHWC then flatten.
-          // Find the NCHW shape by looking at the buffer size and the reshape target.
           const nFloats = buf.size / 4;
 
-          // Read the raw NCHW data
-          const nchw = await this._readBuffer(buf, nFloats);
-
-          // Figure out C, H, W from the known shapes
-          // reshape target is [1, -1, K] where K is 16 or 1
-          // nchw shape is [1, C, H, W] where C*H*W = nFloats
-          // and H*W * (C/K) = anchors, so C/K * H * W = anchors
-          if (inShape && Array.isArray(inShape) && inShape.length >= 3) {
-            const K = inShape[inShape.length - 1]; // values per anchor (16 or 1)
-            const C = K; // in face detector: regressor C=32 with K=16 means C/K=2... hmm
-            // Actually: NCHW [1, outC, H, W] -> NHWC [1, H, W, outC] -> reshape [1, H*W*outC/K, K]
-            // We need outC, H, W. outC*H*W = nFloats.
-            // From the Reshape target: anchors * K = nFloats, so anchors = nFloats / K
-            // From NCHW: outC is known from the conv. H*W = nFloats / outC.
-            // But we don't have outC directly. Let me estimate from known spatial dims.
-            // Face det: 16x16 features -> 8192 floats with 32 channels, or 8x8 with 96 channels.
-            // The simpler approach: just do NCHW -> NHWC transpose for known dims.
-
-            // Guess spatial dims from buffer size and known patterns
-            let outC, H, Wd;
-            if (nFloats === 8192) { outC = 32; H = 16; Wd = 16; }       // regressor_8
-            else if (nFloats === 6144) { outC = 96; H = 8; Wd = 8; }    // regressor_16
-            else if (nFloats === 512) { outC = 2; H = 16; Wd = 16; }    // classificator_8
-            else if (nFloats === 384) { outC = 6; H = 8; Wd = 8; }      // classificator_16
-            // Palm detector sizes
-            else if (nFloats === 15552) { outC = 108; H = 12; Wd = 12; } // palm reg_16
-            else if (nFloats === 864) { outC = 6; H = 12; Wd = 12; }     // palm cls_16
-            else if (nFloats === 20736) { outC = 36; H = 24; Wd = 24; }  // palm reg_8
-            else if (nFloats === 1152) { outC = 2; H = 24; Wd = 24; }    // palm cls_8
-            else { outC = 1; H = 1; Wd = nFloats; } // fallback
-
-            // NCHW -> NHWC transpose
-            const nhwc = new Float32Array(nFloats);
-            for (let h = 0; h < H; h++)
-              for (let wd = 0; wd < Wd; wd++)
-                for (let c = 0; c < outC; c++)
-                  nhwc[h * Wd * outC + wd * outC + c] = nchw[c * H * Wd + h * Wd + wd];
-
-            arrays.push(nhwc);
-            totalFloats += nFloats;
-          } else {
-            arrays.push(nchw);
-            totalFloats += nFloats;
+          // Trace back: inName was produced by Reshape, whose input was Transpose,
+          // whose input was the Conv. The Conv's output shape is the NCHW shape.
+          // Find the Reshape node that outputs inName
+          let nchwShape = null;
+          for (const n of g) {
+            if (n.op === 'Reshape' && n.outputs[0] === inName) {
+              // Reshape's input is the Transpose output
+              for (const n2 of g) {
+                if (n2.op === 'Transpose' && n2.outputs[0] === n.inputs[0]) {
+                  // Transpose's input is the Conv output -- shapes has its NCHW shape
+                  nchwShape = shapes[n2.inputs[0]];
+                  break;
+                }
+              }
+              break;
+            }
           }
+
+          if (nchwShape && nchwShape.length === 4) {
+            const [, C, H, Wd] = nchwShape;
+            // Transpose NCHW->NHWC on GPU
+            const nhwcBuf = device.createBuffer({ size: nFloats * 4, usage: BF });
+            const tParams = new Uint32Array([C, H, Wd, 0]);
+            const tpb = this._getUniformBuf(tParams.byteLength);
+            device.queue.writeBuffer(tpb, 0, tParams);
+            const pass = enc.beginComputePass();
+            pass.setPipeline(this.P.transpose_nhwc);
+            pass.setBindGroup(0, device.createBindGroup({
+              layout: this.P.transpose_nhwc.getBindGroupLayout(0),
+              entries: [
+                { binding: 0, resource: { buffer: tpb } },
+                { binding: 1, resource: { buffer: buf } },
+                { binding: 2, resource: { buffer: nhwcBuf } },
+              ],
+            }));
+            pass.dispatchWorkgroups(Math.ceil(nFloats / 256));
+            pass.end();
+            pieces.push({ buf: nhwcBuf, floats: nFloats });
+          } else {
+            pieces.push({ buf, floats: nFloats });
+          }
+          totalFloats += nFloats;
         }
-        const concatted = new Float32Array(totalFloats);
-        let offset = 0;
-        for (const arr of arrays) {
-          concatted.set(arr, offset);
-          offset += arr.length;
-        }
+
+        // Allocate output and copy pieces into it
         const outBuf = getOrAlloc(out, [1, totalFloats]);
-        device.queue.writeBuffer(outBuf, 0, concatted);
+        let dstOffset = 0;
+        for (const piece of pieces) {
+          enc.copyBufferToBuffer(piece.buf, 0, outBuf, dstOffset * 4, piece.floats * 4);
+          dstOffset += piece.floats;
+        }
         shapes[out] = [1, totalFloats];
-        enc = device.createCommandEncoder();
         continue;
       }
 

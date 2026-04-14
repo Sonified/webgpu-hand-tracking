@@ -41,6 +41,7 @@ try {
     gemm: await mkP('gemm'), global_avg_pool: await mkP('global_avg_pool'),
     add: await mkP('add'), pad_channels: await mkP('pad_channels'),
     fused_block: await mkP('fused_block'),
+    transpose_nhwc: await mkP('transpose_nhwc'),
   };
   log('Shaders compiled');
 
