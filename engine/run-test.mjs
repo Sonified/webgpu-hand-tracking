@@ -105,9 +105,9 @@ async function run() {
     timeout: 60000,
   });
 
-  // Wait for "Full pipeline test complete" or error
+  // Wait for "done" (the final line test.html logs) or error
   await page.waitForFunction(
-    () => document.getElementById('log')?.textContent?.includes('test complete') ||
+    () => document.getElementById('log')?.textContent?.includes('\ndone') ||
           document.getElementById('log')?.textContent?.includes('ERROR'),
     { timeout: 120000 }
   );
@@ -115,17 +115,17 @@ async function run() {
   // Small delay for any final logs
   await new Promise(r => setTimeout(r, 1000));
 
-  // Check results
-  const hasMatch = logs.some(l => l.includes('MATCH'));
-  const hasError = logs.some(l => l.includes('Large divergence') || l.includes('ERROR'));
+  // Check results — test.html logs ✅ per output and ❌ on large divergence
+  const hasMatch = logs.some(l => l.includes('✅'));
+  const hasError = logs.some(l => l.includes('Large divergence') || l.includes('ERROR') || l.includes('❌'));
 
   console.log('\n' + '='.repeat(50));
-  if (hasMatch) {
+  if (hasMatch && !hasError) {
     console.log('\x1b[32m✅ ENGINE OUTPUT MATCHES ORT\x1b[0m');
   } else if (hasError) {
     console.log('\x1b[31m❌ ENGINE OUTPUT DOES NOT MATCH\x1b[0m');
   } else {
-    console.log('\x1b[33m⚠ Test completed but no match/error verdict found\x1b[0m');
+    console.log('\x1b[33m⚠ Test completed but no ✅/❌ verdict found in output\x1b[0m');
   }
   console.log('='.repeat(50));
 
