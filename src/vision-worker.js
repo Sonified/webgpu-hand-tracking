@@ -109,17 +109,13 @@ function setupModel(name, size) {
   models[name] = { pipeline, inputBuf, uniformBuf, size };
 }
 
-function dispatchWarp(name, bitmap, affine) {
+// Encode a warp dispatch into an external encoder using a shared texture
+function encodeWarp(enc, name, srcTexture, srcW, srcH, affine) {
   const m = models[name];
-  const srcTexture = device.createTexture({
-    size: [bitmap.width, bitmap.height], format: 'rgba8unorm',
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
-  });
-  device.queue.copyExternalImageToTexture({ source: bitmap }, { texture: srcTexture }, [bitmap.width, bitmap.height]);
   device.queue.writeBuffer(m.uniformBuf, 0, new Float32Array([
     affine.a, affine.b, affine.c, 0,
     affine.d, affine.e, affine.f, 0,
-    bitmap.width, bitmap.height, 0, 0,
+    srcW, srcH, 0, 0,
   ]));
   const bindGroup = device.createBindGroup({
     layout: m.pipeline.getBindGroupLayout(0),
@@ -130,12 +126,22 @@ function dispatchWarp(name, bitmap, affine) {
       { binding: 3, resource: { buffer: m.uniformBuf } },
     ],
   });
-  const enc = device.createCommandEncoder();
   const pass = enc.beginComputePass();
   pass.setPipeline(m.pipeline);
   pass.setBindGroup(0, bindGroup);
   pass.dispatchWorkgroups(Math.ceil(m.size / 16), Math.ceil(m.size / 16));
   pass.end();
+}
+
+// Legacy: standalone warp with own texture + submit (for non-batched calls)
+function dispatchWarp(name, bitmap, affine) {
+  const srcTexture = device.createTexture({
+    size: [bitmap.width, bitmap.height], format: 'rgba8unorm',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+  });
+  device.queue.copyExternalImageToTexture({ source: bitmap }, { texture: srcTexture }, [bitmap.width, bitmap.height]);
+  const enc = device.createCommandEncoder();
+  encodeWarp(enc, name, srcTexture, bitmap.width, bitmap.height, affine);
   device.queue.submit([enc.finish()]);
   srcTexture.destroy();
 }
@@ -274,17 +280,36 @@ async function flushQueue() {
   _queue = [];
   if (batch.length === 0) return;
 
-  // Phase 1: Warp all inputs (these need separate submits because they use textures)
+  // ONE encoder for everything: warps + inference + readback copies
+  const enc = device.createCommandEncoder();
+
+  // Phase 1: Upload bitmaps as shared textures, encode warps
+  // Group by bitmap to share texture uploads where possible
+  const texturesToDestroy = [];
   for (const entry of batch) {
-    if (entry.warp) entry.warp();
+    if (entry.bitmap && entry.warpName && entry.affine) {
+      const bmp = entry.bitmap;
+      const srcTexture = device.createTexture({
+        size: [bmp.width, bmp.height], format: 'rgba8unorm',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+      });
+      device.queue.copyExternalImageToTexture({ source: bmp }, { texture: srcTexture }, [bmp.width, bmp.height]);
+      encodeWarp(enc, entry.warpName, srcTexture, bmp.width, bmp.height, entry.affine);
+      bmp.close();
+      texturesToDestroy.push(srcTexture);
+    }
   }
 
-  // Phase 2: Encode ALL model inferences into ONE encoder
-  const enc = device.createCommandEncoder();
+  // Phase 2: Encode ALL model inferences into the SAME encoder
   for (const entry of batch) {
     entry.runner.encodeInto(enc);
   }
+
+  // ONE submit for everything
   device.queue.submit([enc.finish()]);
+
+  // Clean up textures
+  for (const t of texturesToDestroy) t.destroy();
 
   // Phase 3: Read ALL outputs in parallel, then post results
   await Promise.all(batch.map(async (entry) => {
@@ -318,7 +343,7 @@ self.onmessage = async (e) => {
     enqueue({
       reqId,
       runner: palmRunner,
-      warp: () => { dispatchWarp('palm', bitmap, affine); bitmap.close(); },
+      bitmap, warpName: 'palm', affine,
       respond: (outputs) => {
         let regressors, scores;
         for (const [, data] of Object.entries(outputs)) {
@@ -341,7 +366,7 @@ self.onmessage = async (e) => {
     enqueue({
       reqId,
       runner: handRunners[slot],
-      warp: () => { dispatchWarp(warpName, bitmap, inv); bitmap.close(); },
+      bitmap, warpName, affine: inv,
       respond: (outputs) => {
         const rawLM = handOutputNames.landmarks ? outputs[handOutputNames.landmarks] : null;
         const handFlag = handOutputNames.handFlag ? outputs[handOutputNames.handFlag][0] : 0;
@@ -371,7 +396,7 @@ self.onmessage = async (e) => {
     enqueue({
       reqId,
       runner: faceDetRunner,
-      warp: () => { dispatchWarp('faceDet', bitmap, affine); bitmap.close(); },
+      bitmap, warpName: 'faceDet', affine,
       respond: (outputs) => {
         let regressors, scores;
         for (const [, data] of Object.entries(outputs)) {
@@ -393,7 +418,7 @@ self.onmessage = async (e) => {
     enqueue({
       reqId,
       runner: faceLmRunner,
-      warp: () => { dispatchWarp('faceLm', bitmap, inv); bitmap.close(); },
+      bitmap, warpName: 'faceLm', affine: inv,
       respond: (outputs) => {
         const rawLM = faceLmOutputNames.landmarks ? outputs[faceLmOutputNames.landmarks] : null;
         const faceFlag = faceLmOutputNames.faceFlag ? outputs[faceLmOutputNames.faceFlag][0] : 0;
