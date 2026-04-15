@@ -242,6 +242,7 @@ export class HandTracker {
         const bitmap = await createImageBitmap(video);
         const result = await slot.worker.infer(bitmap, slot.rect, vw, vh);
 
+        logLandmark(`[handFlag] slot ${slot.index}: ${result.handFlag.toFixed(3)}`);
         if (result.handFlag > HAND_FLAG_THRESHOLD) {
           slot.landmarks = result.landmarks;
           slot.rect = this.landmarksToRect(result.landmarks, vw, vh);
