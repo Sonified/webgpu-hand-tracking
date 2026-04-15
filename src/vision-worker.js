@@ -14,7 +14,7 @@ const FACE_LM_SIZE = 256;
 const NUM_FACE_LM = 478;
 
 let device = null;
-let palmRunner = null, handRunner = null, faceDetRunner = null, faceLmRunner = null;
+let palmRunner = null, handRunners = [null, null], faceDetRunner = null, faceLmRunner = null;
 let palmAnchors = null, faceAnchors = null;
 let handOutputNames = {}, faceLmOutputNames = {};
 
@@ -199,8 +199,30 @@ async function init() {
   palmRunner = new ModelRunner(device, P, palm.W, palm.allWeightsBuf);
   await palmRunner.compile(palm.graph, models.palm.inputBuf, palm.allWeights);
 
-  handRunner = new ModelRunner(device, P, hand.W, hand.allWeightsBuf);
-  await handRunner.compile(hand.graph, models.hand.inputBuf, hand.allWeights);
+  // Two hand runners with separate buffers for true parallel two-hand inference
+  setupModel('hand0', HAND_SIZE);
+  setupModel('hand1', HAND_SIZE);
+  // Each runner needs its own weight buffers (they share the same weights data but separate GPU buffers)
+  const handW0 = {}, handW1 = {};
+  for (const [name, info] of Object.entries(hand.graph.weights)) {
+    if (info.length === 0) continue;
+    const BF = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST;
+    const buf0 = device.createBuffer({ size: Math.max(info.length * 4, 4), usage: BF });
+    device.queue.writeBuffer(buf0, 0, hand.allWeights.subarray(info.offset, info.offset + info.length));
+    handW0[name] = buf0;
+    const buf1 = device.createBuffer({ size: Math.max(info.length * 4, 4), usage: BF });
+    device.queue.writeBuffer(buf1, 0, hand.allWeights.subarray(info.offset, info.offset + info.length));
+    handW1[name] = buf1;
+  }
+  const handWBuf0 = device.createBuffer({ size: hand.allWeights.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+  device.queue.writeBuffer(handWBuf0, 0, hand.allWeights);
+  const handWBuf1 = device.createBuffer({ size: hand.allWeights.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+  device.queue.writeBuffer(handWBuf1, 0, hand.allWeights);
+
+  handRunners[0] = new ModelRunner(device, P, handW0, handWBuf0);
+  await handRunners[0].compile(hand.graph, models.hand0.inputBuf, hand.allWeights);
+  handRunners[1] = new ModelRunner(device, P, handW1, handWBuf1);
+  await handRunners[1].compile(hand.graph, models.hand1.inputBuf, hand.allWeights);
 
   faceDetRunner = new ModelRunner(device, P, faceDet.W, faceDet.allWeightsBuf);
   await faceDetRunner.compile(faceDet.graph, models.faceDet.inputBuf, faceDet.allWeights);
@@ -209,7 +231,7 @@ async function init() {
   await faceLmRunner.compile(faceLm.graph, models.faceLm.inputBuf, faceLm.allWeights);
 
   // Discover hand output names
-  const handOut = await handRunner.runCompiled();
+  const handOut = await handRunners[0].runCompiled();
   for (const [name, data] of Object.entries(handOut)) {
     if (data.length === 63 && !handOutputNames.landmarks) handOutputNames.landmarks = name;
     else if (data.length === 63) handOutputNames.worldLandmarks = name;
@@ -270,12 +292,13 @@ self.onmessage = async (e) => {
 
   if (type === 'handLandmark') {
     try {
-      const { bitmap, rect, vw, vh } = e.data;
+      const { bitmap, rect, vw, vh, slot = 0 } = e.data;
       const inv = computeAffineParams(rect, HAND_SIZE);
       if (!inv) { bitmap.close(); self.postMessage({ type: 'handResult', reqId, handFlag: 0 }); return; }
-      dispatchWarp('hand', bitmap, inv);
+      const warpName = slot === 0 ? 'hand0' : 'hand1';
+      dispatchWarp(warpName, bitmap, inv);
       bitmap.close();
-      const outputs = await handRunner.runCompiled();
+      const outputs = await handRunners[slot].runCompiled();
       const rawLM = handOutputNames.landmarks ? outputs[handOutputNames.landmarks] : null;
       const handFlag = handOutputNames.handFlag ? outputs[handOutputNames.handFlag][0] : 0;
       const handednessRaw = handOutputNames.handedness ? outputs[handOutputNames.handedness][0] : 0.5;

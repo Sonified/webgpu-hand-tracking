@@ -75,9 +75,10 @@ class PalmWorker {
 }
 
 class LandmarkWorker {
+  constructor(slot) { this.slot = slot; }
   async init() { await ensureWorkerReady(); }
   infer(bitmap, rect, vw, vh) {
-    return workerCall('handLandmark', { bitmap, rect, vw, vh }, [bitmap]).then(data => {
+    return workerCall('handLandmark', { bitmap, rect, vw, vh, slot: this.slot }, [bitmap]).then(data => {
       let landmarks = [];
       if (data.landmarks) {
         const flat = new Float32Array(data.landmarks);
@@ -93,8 +94,8 @@ class LandmarkWorker {
 export class HandTracker {
   constructor() {
     this.palmWorker = new PalmWorker();
-    // Two logical landmark "workers" but they share the same physical worker+device
-    this.landmarkWorkers = [new LandmarkWorker(), new LandmarkWorker()];
+    // Two landmark runners on the same device, separate buffers for true parallel inference
+    this.landmarkWorkers = [new LandmarkWorker(0), new LandmarkWorker(1)];
     this.slots = [
       { index: 0, worker: this.landmarkWorkers[0], active: false, rect: null, landmarks: null },
       { index: 1, worker: this.landmarkWorkers[1], active: false, rect: null, landmarks: null },
