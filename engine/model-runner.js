@@ -87,86 +87,9 @@ export class ModelRunner {
       }
     };
 
-    // --- Fused inverted residual detection ---
-    // Pattern: Conv(1x1 expand) -> Clip -> Conv(DW 3x3) -> Clip -> Conv(1x1 project) -> [MaxPool ->] Add
-    const fusedInvRes = new Map();
-    const skipNodes = new Set();
-    if (this.P.fused_invres && this.allWeightsBuf) {
-      for (let i = 0; i < g.length; i++) {
-        if (skipNodes.has(i)) continue;
-        const exp = g[i];
-        if (exp.op !== 'Conv') continue;
-        const expW = w[exp.inputs[1]];
-        if (!expW || expW.shape[2] !== 1 || expW.shape[3] !== 1) continue; // must be 1x1
-        const expGroup = exp.attrs?.group || 1;
-        if (expGroup !== 1) continue;
-
-        // Next: Clip/ReLU6 after expand
-        let j = i + 1;
-        if (j >= g.length) continue;
-        let expActType = 0;
-        if ((g[j].op === 'Clip' || g[j].op === 'Relu') && g[j].inputs[0] === exp.outputs[0]) {
-          expActType = g[j].op === 'Clip' ? 2 : 3;
-          j++;
-        } else continue; // expand without activation -- not inverted residual pattern
-
-        // Next: DW Conv
-        if (j >= g.length || g[j].op !== 'Conv') continue;
-        const dwNode = g[j];
-        const dwW = w[dwNode.inputs[1]];
-        if (!dwW) continue;
-        const dwGroup = dwNode.attrs?.group || 1;
-        if (dwGroup <= 1 || dwW.shape[2] !== 3) continue; // must be DW 3x3
-        const dwIdx = j;
-        j++;
-
-        // Next: Clip/ReLU6 after DW
-        let dwActType = 0;
-        if (j < g.length && (g[j].op === 'Clip' || g[j].op === 'Relu') && g[j].inputs[0] === dwNode.outputs[0]) {
-          dwActType = g[j].op === 'Clip' ? 2 : 3;
-          j++;
-        }
-
-        // Next: Project 1x1 Conv
-        if (j >= g.length || g[j].op !== 'Conv') continue;
-        const projNode = g[j];
-        const projW = w[projNode.inputs[1]];
-        if (!projW || projW.shape[2] !== 1 || projW.shape[3] !== 1) continue;
-        const projIdx = j;
-        j++;
-
-        // Find Add consuming project output (may have MaxPool on residual path)
-        let addIdx = -1;
-        for (let look = j; look < Math.min(j + 3, g.length); look++) {
-          if (g[look].op === 'Add' && (g[look].inputs[0] === projNode.outputs[0] || g[look].inputs[1] === projNode.outputs[0])) {
-            addIdx = look;
-            break;
-          }
-        }
-        if (addIdx === -1) continue;
-
-        // Skip if residual goes through MaxPool
-        const addOther = g[addIdx].inputs[0] === projNode.outputs[0] ? g[addIdx].inputs[1] : g[addIdx].inputs[0];
-        const resProducer = g.find(n => n.outputs[0] === addOther);
-        if (resProducer && resProducer.op === 'MaxPool') continue;
-
-        // We have a fuseable inverted residual!
-        const nodes = [];
-        for (let n = i; n <= addIdx; n++) nodes.push(n);
-        fusedInvRes.set(i, {
-          expIdx: i, expActType, dwIdx, dwActType, projIdx, addIdx,
-          expW, dwW, projW,
-        });
-        nodes.forEach(n => skipNodes.add(n));
-      }
-      if (fusedInvRes.size > 0 && !this._invResLogged) {
-        console.log(`[invres fusion] ${fusedInvRes.size} inverted residual blocks fused`);
-        this._invResLogged = true;
-      }
-    }
-
     // --- Fused block pattern detection ---
     // Pattern: Conv(DW) -> Conv(1x1) -> [Pad ->] Add -> Relu/PRelu/Clip
+    const skipNodes = new Set();
     const fusedBlocks = new Map();
     if (this.P.fused_block && this.allWeightsBuf) {
       for (let i = 0; i < g.length; i++) {
@@ -265,7 +188,7 @@ export class ModelRunner {
     let enc = device.createCommandEncoder();
 
     for (let i = 0; i < g.length; i++) {
-      if (skipNodes.has(i) && !fusedBlocks.has(i) && !fusedInvRes.has(i)) continue;
+      if (skipNodes.has(i) && !fusedBlocks.has(i)) continue;
       const node = g[i];
       const op = node.op;
       const attrs = node.attrs || {};
@@ -273,69 +196,6 @@ export class ModelRunner {
       const out = node.outputs[0];
 
       // --- Fused residual block dispatch ---
-      // --- Fused inverted residual dispatch ---
-      if (fusedInvRes.has(i)) {
-        const fir = fusedInvRes.get(i);
-        const expNode = g[fir.expIdx];
-        const dwNode = g[fir.dwIdx];
-        const projNode = g[fir.projIdx];
-        const addNode = g[fir.addIdx];
-        const dwAttrs = dwNode.attrs || {};
-        const pads = dwAttrs.pads || [0, 0, 0, 0];
-        const stride = dwAttrs.strides?.[0] || 1;
-        const inShape = shapes[expNode.inputs[0]];
-        const [, inC, iH, iW] = inShape;
-        const expOutCh = fir.expW.shape[0];
-        const projOutCh = fir.projW.shape[0];
-        const oH = Math.floor((iH + pads[0] + pads[2] - 3) / stride) + 1;
-        const oW = Math.floor((iW + pads[1] + pads[3] - 3) / stride) + 1;
-        const outShape = [1, projOutCh, oH, oW];
-
-        // Set shapes for all intermediate nodes
-        shapes[addNode.outputs[0]] = outShape;
-        shapes[projNode.outputs[0]] = outShape;
-        const finalOut = addNode.outputs[0];
-        const outBuf = getOrAlloc(finalOut, outShape);
-        // Point all intermediate tensor names to output
-        for (let n = fir.expIdx; n <= fir.addIdx; n++) {
-          tensors[g[n].outputs[0]] = outBuf;
-          shapes[g[n].outputs[0]] = outShape;
-        }
-
-        // Residual input
-        const addOther = addNode.inputs[0] === projNode.outputs[0] ? addNode.inputs[1] : addNode.inputs[0];
-        const residualBuf = tensors[addOther] || this.dummy;
-
-        // Build descriptor (22 u32s)
-        const desc = new Uint32Array([
-          inC, expOutCh,
-          w[expNode.inputs[1]].offset, w[expNode.inputs[2]].offset,
-          fir.expActType,
-          stride, pads[0], pads[1], pads[2], pads[3],
-          w[dwNode.inputs[1]].offset, w[dwNode.inputs[2]].offset,
-          fir.dwActType,
-          projOutCh,
-          w[projNode.inputs[1]].offset, w[projNode.inputs[2]].offset,
-          iH, iW, oH, oW,
-          1, // has_residual
-          0, // padding
-        ]);
-        const pb = this._getUniformBuf(desc.byteLength);
-        device.queue.writeBuffer(pb, 0, desc);
-
-        dispatch(enc, this.P.fused_invres, device.createBindGroup({
-          layout: this.P.fused_invres.getBindGroupLayout(0),
-          entries: [
-            { binding: 0, resource: { buffer: pb } },
-            { binding: 1, resource: { buffer: tensors[expNode.inputs[0]] } },
-            { binding: 2, resource: { buffer: this.allWeightsBuf } },
-            { binding: 3, resource: { buffer: residualBuf } },
-            { binding: 4, resource: { buffer: outBuf } },
-          ],
-        }), Math.ceil(oW / 8), Math.ceil(oH / 8), projOutCh);
-        continue;
-      }
-
       if (fusedBlocks.has(i)) {
         const fb = fusedBlocks.get(i);
         const dwNode = g[fb.dwIdx];
