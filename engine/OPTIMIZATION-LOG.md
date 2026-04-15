@@ -210,4 +210,26 @@ ORT avoids some of this by running inside WASM with tighter GPU API access. We'r
 
 The shader optimizations (shared memory, vec4) attack the GPU compute time directly. The architecture optimizations (batched submit, single pass) attack the JS overhead. Both fronts matter.
 
-We are **1.6-2.2x faster than MediaPipe** in the live demo. The headless engine is **2-5.5x faster than ORT WASM**. The remaining work is closing the gap between headless potential and live demo reality.
+We are **1.6-2.2x faster than MediaPipe** in the live demo. The headless engine is **2-5.5x faster than ORT WASM**.
+
+## ORT PARITY ACHIEVED (2026-04-14)
+
+Separate workers (5 devices) + optimized shaders (shared memory DW + vec4 pointwise):
+
+| | **WGSL (live)** | **ORT-WebGPU (live)** | |
+|---|---|---|---|
+| Hand | **8.2ms** | 8.2ms | **MATCH** |
+| Face LM | **13.2ms** | 13.0ms | **MATCH** |
+| MediaPipe Hand | 29.3ms | | 3.6x slower |
+| MediaPipe Face | 25.1ms | | 1.9x slower |
+
+Built from scratch. No ONNX Runtime. No WASM. Pure WebGPU compute shaders.
+
+The key was NOT architecture (unified vs separate workers) -- it was **shader-level compute optimization**. The shared memory DW conv (2x hand speedup) and vec4 pointwise accumulation gave us the compute parity. The separate worker architecture then preserved the parallelism that the unified worker lost.
+
+### What we learned
+- Architecture experiments (unified worker, batched submit, warp folding) gave ~10-20% improvements at best
+- Shader compute optimizations (shared memory, vec4) gave **2x** improvements
+- The GPU driver and L2 cache on M1 are smart enough that explicit data sharing (shared memory for weights, unified device) often hurts more than helps
+- The M1 handles 5 separate GPU devices efficiently -- the "waste" of separate devices is actually free parallelism
+- When in doubt, make the shader itself faster, not the orchestration around it
