@@ -794,20 +794,26 @@ export class ModelRunner {
     const device = this.device;
     const enc = device.createCommandEncoder();
 
-    // Dispatch all compute + copy steps
+    // Batch all compute dispatches into ONE pass -- implicit barriers between
+    // dispatches guarantee serial memory semantics. The GPU driver can then
+    // optimize the whole sequence as one unit (fuse barriers, overlap independent work).
+    // Buffer copies (Concat assembly, readback) go between/after compute passes.
+    let pass = null;
     for (const s of this._steps) {
       if (s.type === 'dispatch') {
-        const pass = enc.beginComputePass();
+        if (!pass) pass = enc.beginComputePass();
         pass.setPipeline(s.pipeline);
         pass.setBindGroup(0, s.bindGroup);
         pass.dispatchWorkgroups(s.x, s.y, s.z);
-        pass.end();
       } else if (s.type === 'copy') {
+        // Must end compute pass before encoder-level copy
+        if (pass) { pass.end(); pass = null; }
         enc.copyBufferToBuffer(s.src, s.srcOff, s.dst, s.dstOff, s.bytes);
       }
     }
+    if (pass) { pass.end(); pass = null; }
 
-    // Copy outputs to pre-allocated staging buffers in the SAME encoder (no extra submit)
+    // Copy outputs to pre-allocated staging buffers
     for (const info of this._readbackInfos) {
       enc.copyBufferToBuffer(info.src, 0, info.staging, 0, info.bytes);
     }
