@@ -171,6 +171,13 @@ These prove the engine itself is fast. The gap between headless and live is pure
 - **Rule of thumb:** Fuse when the intermediate has fewer elements than the outer loop iterations. Don't fuse when the intermediate is wider than the output.
 - **Status:** Shader exists at `fused_invres.wgsl` but is NOT wired in. Kept for reference.
 
+### 11. Shared memory weight tiling for 1x1 pointwise (NO IMPROVEMENT)
+- **What:** For 1x1 convolutions, load weight row into workgroup shared memory (64 threads cooperatively load, all read from shared). Saves 63 redundant global memory reads per weight value.
+- **Result:** Hand: 3.20ms -> 3.47ms (8% SLOWER). All other models flat.
+- **Why it didn't help:** On M1, the L2 cache is large and fast enough that redundant weight reads from global memory are already cached. The `workgroupBarrier()` synchronization cost (twice per tile iteration) is more expensive than the memory traffic savings. The barrier forces all 64 threads to stall until the slowest one finishes loading, which adds latency that the cache-hit path doesn't have.
+- **Key insight:** Shared memory tiling only wins when the data is too large for L2 cache OR when the barrier cost is amortized over enough compute. For small 1x1 convolutions (16-96 channels), the data fits in cache and barriers dominate.
+- **Status:** Reverted. Simple vec4 accumulation from global memory is faster on M1.
+
 ### 9. Vec4 dot product for 1x1 pointwise conv
 - **What:** For 1x1 convolutions (which are just matrix multiplies), load 4 input channels and 4 weights at once as `vec4<f32>`, use `dot()` for the multiply-accumulate. 4x fewer memory transactions per iteration.
 - **Result:** Combined with shared memory DW, contributes to the 2x hand speedup. 1x1 convs are the bottleneck in MobileNetV2's expand-project pattern.

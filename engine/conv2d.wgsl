@@ -96,33 +96,21 @@ fn main(
     else if (!in_bounds) {
         // Out of bounds -- skip all compute paths
     }
-    // 1x1 pointwise path: vec4 accumulation
+    // 1x1 pointwise path: vec4 accumulation (no shared memory -- M1 L2 cache handles weight reuse)
     else if (params.kern_h == 1u && params.kern_w == 1u) {
         let spatial_idx = oh * params.in_w + ow;
         let cpg = channels_per_group;
         let cpg4 = cpg / 4u;
         let w_base = oc * cpg;
 
-        // Process 4 input channels at a time
         for (var ic4: u32 = 0u; ic4 < cpg4; ic4++) {
             let ic = in_c_start + ic4 * 4u;
             let i0 = ic * params.in_h * params.in_w + spatial_idx;
             let stride = params.in_h * params.in_w;
-            let v = vec4f(
-                input[i0],
-                input[i0 + stride],
-                input[i0 + stride * 2u],
-                input[i0 + stride * 3u]
-            );
-            let w = vec4f(
-                weights[w_base + ic4 * 4u],
-                weights[w_base + ic4 * 4u + 1u],
-                weights[w_base + ic4 * 4u + 2u],
-                weights[w_base + ic4 * 4u + 3u]
-            );
+            let v = vec4f(input[i0], input[i0 + stride], input[i0 + stride * 2u], input[i0 + stride * 3u]);
+            let w = vec4f(weights[w_base + ic4 * 4u], weights[w_base + ic4 * 4u + 1u], weights[w_base + ic4 * 4u + 2u], weights[w_base + ic4 * 4u + 3u]);
             sum += dot(v, w);
         }
-        // Handle remaining channels
         for (var ic = in_c_start + cpg4 * 4u; ic < in_c_start + cpg; ic++) {
             let in_idx = ic * params.in_h * params.in_w + spatial_idx;
             let w_idx = oc * cpg + (ic - in_c_start);
