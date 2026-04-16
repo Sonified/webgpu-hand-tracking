@@ -356,18 +356,29 @@ How to investigate: rerun the ball-toss bench with `numHands=1` (eliminates para
 - Cooldown on dropped slots: hack, and the detection still comes back after cooldown expires
 - Spatial proximity to last-known position: closest to correct but the edge-of-frame phantom detections are spatially close to the wrong slot's last position
 
-**The real fix:** Spatial identity tracking belongs in `handleHandResult()` in the demo (index.html), not in the inference pipeline. Both MediaPipe and WebGPU Vision backends return hands in arbitrary order. The demo should:
+**The real fix (updated 2026-04-15 per Robert):** WebGPU Vision wraps around the model and fixes handedness BEFORE the end-user interacts with it. Library-level feature, not demo-level workaround. Palm centroid-based identity:
 
-1. Keep a last-known wrist position for each visual slot (already has this in `handMotion[h].lastPos`)
-2. When a new frame of hands arrives, use **nearest-neighbor assignment** (Hungarian algorithm is overkill for 2 hands): compare each incoming hand's wrist position to each slot's last-known wrist position, assign to minimize total distance
-3. This works for both backends since it operates on the output landmarks, not on the pipeline internals
-4. The pipeline's slot assignment and dedup code should be reverted to simple `emptySlots.shift()` -- let the demo handle visual stability
+1. Compute a very low-cost centroid from 4 of the most stable palm points (probably wrist + MCP joints -- less jitter than fingertips)
+2. Each slot maintains its own centroid history -- OUR identity, independent of model labels
+3. When hand count changes (2->1 or 1->2), compare incoming centroids against slot centroids. Assign by nearest match. Handle the flip on THAT exact frame.
+4. Model's handedness is a hint only, used for initial assignment when both hands first appear. After that, centroids own identity.
+5. MediaPipe's pipeline stays broken -- that's their problem. WebGPU Vision returns stable hand identities as a selling point.
+
+Fix goes in `pipeline.js`, not the demo.
 
 **What's in the pipeline now (from this session, should be cleaned up):**
 - Dedup detection (background palm detection when same handedness + overlap for 3 frames) -- this is still useful and should stay
 - `lastRect` on slots for spatial assignment -- partially implemented, can be simplified
 - Handedness swap was removed -- keep it removed, it caused visual flips
 - Edge rejection was reverted -- correct, don't shrink play area
+
+### Known issue: intermittent startup stall (20-30 seconds)
+
+Observed 2026-04-15. Demo loads, all workers report ready, camera goes live, face detection fires once and assigns slot 0, palm detection fires once (5 detections, assigns one hand), then **everything stalls for 20-30 seconds**. No FRAME RATE logs, no BENCH logs, tracking stuck on `_,_`. Eventually recovers with a **22x oversampling burst** (673 hand samples, 668 face samples in one report) then settles to normal 30fps.
+
+The 22x oversampling is the smoking gun: the video frame callback was accumulating frames without processing them, then fired them all at once. Classic signature of either (a) tab being throttled/backgrounded, (b) an async init step blocking frame processing, or (c) a worker getting stuck on a promise that eventually resolves.
+
+Not reliably reproducible yet. Worth investigating next time it happens: check `document.visibilityState` at startup, whether any worker's first `postMessage` is hanging, and whether `requestVideoFrameCallback` has a warmup issue. The face worker's very first detection took an abnormally long time to complete (face-lm p95 was 106.7ms max in that recovery burst, vs typical 14-16ms), which suggests the stall is on the face pipeline side.
 
 ### Mobile / phone support: WebGPU Vision not loading
 
