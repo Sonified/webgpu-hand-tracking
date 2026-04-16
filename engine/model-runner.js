@@ -828,13 +828,14 @@ export class ModelRunner {
     const outputs = {};
     await Promise.all(this._readbackInfos.map(async (info) => {
       await info.staging.mapAsync(GPUMapMode.READ);
-      outputs[info.name] = new Float32Array(info.staging.getMappedRange()).slice();
+      info.output.set(new Float32Array(info.staging.getMappedRange()));
       info.staging.unmap();
+      outputs[info.name] = info.output;
     }));
     return outputs;
   }
 
-  /** Pre-allocate staging buffers for output readback during compile() */
+  /** Pre-allocate staging buffers AND output arrays for readback during compile() */
   _buildReadbackBuffers() {
     this._readbackInfos = [];
     for (const [name, info] of Object.entries(this._outputBufs)) {
@@ -843,7 +844,10 @@ export class ModelRunner {
         size: bytes,
         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
       });
-      this._readbackInfos.push({ name, src: info.buf, staging, bytes });
+      this._readbackInfos.push({
+        name, src: info.buf, staging, bytes,
+        output: new Float32Array(info.floats), // pre-allocated, reused every frame
+      });
     }
   }
 
