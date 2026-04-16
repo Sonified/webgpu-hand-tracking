@@ -140,8 +140,8 @@ let cachedWarpBindGroup = null;
 let cachedWarpSize = [0, 0];
 const warpUniforms = new Float32Array(12);
 
-function dispatchWarp(bitmap, inv) {
-  const w = bitmap.width, h = bitmap.height;
+function dispatchWarp(source, inv) {
+  const w = source.displayWidth || source.width, h = source.displayHeight || source.height;
 
   if (w !== cachedWarpSize[0] || h !== cachedWarpSize[1]) {
     if (cachedWarpTexture) cachedWarpTexture.destroy();
@@ -161,7 +161,7 @@ function dispatchWarp(bitmap, inv) {
     cachedWarpSize = [w, h];
   }
 
-  device.queue.copyExternalImageToTexture({ source: bitmap }, { texture: cachedWarpTexture }, [w, h]);
+  device.queue.copyExternalImageToTexture({ source }, { texture: cachedWarpTexture }, [w, h]);
   warpUniforms[0] = inv.a; warpUniforms[1] = inv.b; warpUniforms[2] = inv.c;
   warpUniforms[4] = inv.d; warpUniforms[5] = inv.e; warpUniforms[6] = inv.f;
   warpUniforms[8] = w; warpUniforms[9] = h;
@@ -192,17 +192,17 @@ self.onmessage = async (e) => {
 
   if (type === 'infer') {
     try {
-      const { bitmap, rect, vw, vh } = e.data;
+      const { frame, rect, vw, vh } = e.data;
 
       const inv = computeAffineParams(rect);
       if (!inv) {
-        bitmap.close();
+        frame.close();
         self.postMessage({ type: 'result', faceFlag: 0, landmarks: null });
         return;
       }
 
-      dispatchWarp(bitmap, inv);
-      bitmap.close();
+      dispatchWarp(frame, inv);
+      frame.close();
 
       const outputs = await runner.runCompiled();
 

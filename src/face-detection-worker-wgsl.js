@@ -124,8 +124,8 @@ let cachedLBBindGroup = null;
 let cachedLBSize = [0, 0];
 let cachedLetterbox = null;
 
-function gpuLetterbox(bitmap) {
-  const srcW = bitmap.width, srcH = bitmap.height;
+function gpuLetterbox(source) {
+  const srcW = source.displayWidth || source.width, srcH = source.displayHeight || source.height;
   const scale = FACE_SIZE / Math.max(srcW, srcH);
   const dstW = Math.round(srcW * scale), dstH = Math.round(srcH * scale);
   const offsetX = (FACE_SIZE - dstW) / 2, offsetY = (FACE_SIZE - dstH) / 2;
@@ -153,7 +153,7 @@ function gpuLetterbox(bitmap) {
     device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([scale, offsetX, offsetY, srcW, srcH, 0, 0, 0]));
   }
 
-  device.queue.copyExternalImageToTexture({ source: bitmap }, { texture: cachedLBTexture }, [srcW, srcH]);
+  device.queue.copyExternalImageToTexture({ source }, { texture: cachedLBTexture }, [srcW, srcH]);
 
   const enc = device.createCommandEncoder();
   const pass = enc.beginComputePass();
@@ -183,11 +183,11 @@ self.onmessage = async (e) => {
 
   if (type === 'detect') {
     try {
-      const { bitmap } = e.data;
+      const { frame } = e.data;
 
       // GPU letterbox writes NCHW directly into the compiled input buffer
-      const letterbox = gpuLetterbox(bitmap);
-      bitmap.close();
+      const letterbox = gpuLetterbox(frame);
+      frame.close();
 
       // Run compiled model (zero JS overhead)
       const outputs = await runner.runCompiled();

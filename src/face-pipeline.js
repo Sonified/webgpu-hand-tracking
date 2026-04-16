@@ -48,10 +48,10 @@ class FaceDetectionWorker {
     });
   }
 
-  detect(bitmap) {
+  detect(frame) {
     return new Promise((resolve) => {
       this.pendingResolve = resolve;
-      this.worker.postMessage({ type: 'detect', bitmap }, [bitmap]);
+      this.worker.postMessage({ type: 'detect', frame }, [frame]);
     });
   }
 
@@ -97,12 +97,12 @@ class FaceLandmarkWorker {
     });
   }
 
-  infer(bitmap, rect, vw, vh, runBlendshapes = true) {
+  infer(frame, rect, vw, vh, runBlendshapes = true) {
     return new Promise((resolve) => {
       this.pendingResolve = resolve;
       this.worker.postMessage(
-        { type: 'infer', bitmap, rect, vw, vh, runBlendshapes },
-        [bitmap]
+        { type: 'infer', frame, rect, vw, vh, runBlendshapes },
+        [frame]
       );
     });
   }
@@ -271,23 +271,22 @@ export class FaceTracker {
       const hasEmptySlots = this.slots.some(s => !s.active);
       if (hasEmptySlots && !this.detecting) {
         this.detecting = true;
-        createImageBitmap(video).then(bitmap => {
-          this.detectWorker.detect(bitmap).then(result => {
-            this.detecting = false;
-            if (result.detections.length > 0) {
-              logDetect(`[face detect] ${result.detections.length} detections`);
-              this.pendingDetections = result;
-            }
-          }).catch(() => { this.detecting = false; });
-        });
+        const frame = new VideoFrame(video);
+        this.detectWorker.detect(frame).then(result => {
+          this.detecting = false;
+          if (result.detections.length > 0) {
+            logDetect(`[face detect] ${result.detections.length} detections`);
+            this.pendingDetections = result;
+          }
+        }).catch(() => { this.detecting = false; });
       }
 
       // Landmark inference for active slot
       const results = await Promise.all(this.slots.map(async (slot) => {
         if (!slot.active) return null;
 
-        const bitmap = await createImageBitmap(video);
-        const result = await slot.worker.infer(bitmap, slot.rect, vw, vh);
+        const frame = new VideoFrame(video);
+        const result = await slot.worker.infer(frame, slot.rect, vw, vh);
 
         if (result.faceFlag > FACE_FLAG_THRESHOLD) {
           slot.landmarks = result.landmarks;

@@ -54,10 +54,10 @@ class PalmWorker {
     });
   }
 
-  detect(bitmap) {
+  detect(frame) {
     return new Promise((resolve) => {
       this.pendingResolve = resolve;
-      this.worker.postMessage({ type: 'detect', bitmap }, [bitmap]);
+      this.worker.postMessage({ type: 'detect', frame }, [frame]);
     });
   }
 
@@ -103,12 +103,12 @@ class LandmarkWorker {
     });
   }
 
-  infer(bitmap, rect, vw, vh) {
+  infer(frame, rect, vw, vh) {
     return new Promise((resolve) => {
       this.pendingResolve = resolve;
       this.worker.postMessage(
-        { type: 'infer', bitmap, rect, vw, vh },
-        [bitmap]
+        { type: 'infer', frame, rect, vw, vh },
+        [frame]
       );
     });
   }
@@ -224,23 +224,22 @@ export class HandTracker {
       const hasEmptySlots = this.slots.some(s => !s.active);
       if (hasEmptySlots && !this.palmDetecting) {
         this.palmDetecting = true;
-        createImageBitmap(video).then(bitmap => {
-          this.palmWorker.detect(bitmap).then(result => {
-            this.palmDetecting = false;
-            if (result.detections.length > 0) {
-              logPalm(`[palm] ${result.detections.length} detections`);
-              this.pendingDetections = result;
-            }
-          }).catch(() => { this.palmDetecting = false; });
-        });
+        const frame = new VideoFrame(video);
+        this.palmWorker.detect(frame).then(result => {
+          this.palmDetecting = false;
+          if (result.detections.length > 0) {
+            logPalm(`[palm] ${result.detections.length} detections`);
+            this.pendingDetections = result;
+          }
+        }).catch(() => { this.palmDetecting = false; });
       }
 
       // Parallel landmark inference via Promise.all
       const results = await Promise.all(this.slots.map(async (slot) => {
         if (!slot.active) return null;
 
-        const bitmap = await createImageBitmap(video);
-        const result = await slot.worker.infer(bitmap, slot.rect, vw, vh);
+        const frame = new VideoFrame(video);
+        const result = await slot.worker.infer(frame, slot.rect, vw, vh);
 
         if (result.handFlag > HAND_FLAG_THRESHOLD) {
           slot.landmarks = result.landmarks;
