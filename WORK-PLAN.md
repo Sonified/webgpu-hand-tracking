@@ -345,13 +345,29 @@ How to investigate: rerun the ball-toss bench with `numHands=1` (eliminates para
 
 
 
-### Hand tracking: detect and recover from double-mapped hands
+### Hand identity tracking: stable slot assignment across exits/entries (NEXT)
 
-The current pipeline runs two parallel hand-landmark workers (workers 0 and 1) to track up to two hands at once. There is a known failure mode that triggers when **two hands clap or come into contact**: the palm detector cannot cleanly separate them, and both workers end up locking their ROIs onto the **same physical hand**. When the hands then separate, the workers stay stuck on the one hand they can both see, and the other hand is silently untracked even though it is clearly in frame.
+**The problem:** When one hand leaves frame and returns, it can get assigned to the wrong slot, causing the visual wireframes to swap sides. When hands clap, both slots can lock onto the same physical hand. MediaPipe has the exact same issue -- this is fundamental to how HandLandmarker returns results (no persistent identity, just an ordered array that reshuffles when hands enter/leave).
 
-Fix: at the end of each frame, compare the two landmark sets. If they overlap in image space beyond a threshold (for example, palm centers within N pixels and bounding boxes overlapping by more than 50%) for more than a brief moment, declare a duplicate, **free one of the workers from its current ROI lock**, and let it fall back to running palm detection on the next frame to find the other hand. The de-duplication runs on the main thread after `Promise.all`, so it adds essentially no latency.
+**What we tried (2026-04-15) and why it didn't work:**
+- Position-based slot assignment (left side -> slot 0, right side -> slot 1): fails because camera is mirrored, and a detection at the frame edge of the leaving hand steals the slot
+- Handedness swap after inference: causes visible one-frame flip when hands re-enter
+- Edge rejection (reject detections near frame borders): shrinks playable area, still doesn't prevent the swap
+- Cooldown on dropped slots: hack, and the detection still comes back after cooldown expires
+- Spatial proximity to last-known position: closest to correct but the edge-of-frame phantom detections are spatially close to the wrong slot's last position
 
-Watch out for: legitimate hands-clasped poses where the hands really are overlapping in the image. Require the duplication to persist for 2-3 frames before acting on it (to avoid flapping during the actual clap moment), and use a slightly tighter overlap threshold than naive IoU.
+**The real fix:** Spatial identity tracking belongs in `handleHandResult()` in the demo (index.html), not in the inference pipeline. Both MediaPipe and WebGPU Vision backends return hands in arbitrary order. The demo should:
+
+1. Keep a last-known wrist position for each visual slot (already has this in `handMotion[h].lastPos`)
+2. When a new frame of hands arrives, use **nearest-neighbor assignment** (Hungarian algorithm is overkill for 2 hands): compare each incoming hand's wrist position to each slot's last-known wrist position, assign to minimize total distance
+3. This works for both backends since it operates on the output landmarks, not on the pipeline internals
+4. The pipeline's slot assignment and dedup code should be reverted to simple `emptySlots.shift()` -- let the demo handle visual stability
+
+**What's in the pipeline now (from this session, should be cleaned up):**
+- Dedup detection (background palm detection when same handedness + overlap for 3 frames) -- this is still useful and should stay
+- `lastRect` on slots for spatial assignment -- partially implemented, can be simplified
+- Handedness swap was removed -- keep it removed, it caused visual flips
+- Edge rejection was reverted -- correct, don't shrink play area
 
 ### Mobile / phone support: WebGPU Vision not loading
 
@@ -557,16 +573,28 @@ Architecture: separate workers (5 GPU devices) with optimized shaders outperform
 | Face det | 3.11ms | 3.10ms | parity |
 | Face LM | 7.02ms | 13.58ms | **1.9x faster** |
 
-Known issue: 1.3ms hand gap vs ORT in live demo is postMessage + createImageBitmap worker overhead. Invisible at 30fps. See OPTIMIZATION-LOG.md for full details.
+**UPDATE (2026-04-15): ORT BEATEN.** Four optimizations in one session:
+1. Cached warp texture + bind group (eliminated per-frame GPU allocations)
+2. Pre-allocated readback arrays (eliminated per-frame JS heap allocations)
+3. VideoFrame zero-copy transfer (0.02ms vs 0.5ms per createImageBitmap call)
+4. Merged warp + inference into single GPU submit (one submit per worker per frame)
+
+**New live benchmarks (M1 Max, Chrome, 480x360, 2 hands + face):**
+
+| | WGSL | ORT-WebGPU | MediaPipe | vs ORT | vs MediaPipe |
+|---|---|---|---|---|---|
+| Hand | **8.0ms** | 8.2ms | 29.3ms | **2.4% faster** | **3.7x faster** |
+| Face LM | **12.7ms** | 13.0ms | 25.1ms | **2.3% faster** | **2.0x faster** |
 
 Runs on iOS Safari (pure WebGPU, no ONNX Runtime, no WASM). Confirmed working on iPhone.
 
 **What's left for Step 7: Ship + Demo Polish**
+- **Hand identity tracking** (NEXT): stable slot assignment across hand exits/entries. See "Hand identity tracking" section above. Fix belongs in demo's `handleHandResult()`, not pipeline.
+- **Z-axis depth**: stabilize hand size and convert z-depth into z-movement in video space
+- Hand parallax compensation using true z-depth
 - Delete `vendor/onnxruntime-web/` (23MB -- still needed for blendshape worker)
 - Extract face blendshape model to WGSL (then vendor/ can be fully deleted)
 - Push to GitHub Pages
-- **Z-axis depth: stabilize hand size and convert z-depth into z-movement in video space**
-- Hand parallax compensation using true z-depth
 
 **New engine files added this session:**
 ```

@@ -150,8 +150,8 @@ export class HandTracker {
     this.palmWorker = new PalmWorker();
     this.landmarkWorkers = [new LandmarkWorker(), new LandmarkWorker()];
     this.slots = [
-      { index: 0, worker: this.landmarkWorkers[0], active: false, rect: null, landmarks: null },
-      { index: 1, worker: this.landmarkWorkers[1], active: false, rect: null, landmarks: null },
+      { index: 0, worker: this.landmarkWorkers[0], active: false, rect: null, landmarks: null, lastRect: null },
+      { index: 1, worker: this.landmarkWorkers[1], active: false, rect: null, landmarks: null, lastRect: null },
     ];
     this.ready = false;
     this.running = false;
@@ -205,19 +205,40 @@ export class HandTracker {
 
           const detPx = det.cx * vw;
           const detPy = det.cy * vh;
-          const overlapsTracked = this.slots.some(s => {
-            if (!s.active) return false;
+          let overlapsTracked = false;
+          for (const s of this.slots) {
+            if (!s.active) continue;
             const dx = s.rect.cx - detPx;
             const dy = s.rect.cy - detPy;
-            return Math.sqrt(dx * dx + dy * dy) < s.rect.w * 0.5;
-          });
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const thresh = s.rect.w * 0.5;
+            if (dist < thresh) {
+              overlapsTracked = true;
+              logPalm(`[palm-overlap] det(${detPx.toFixed(0)},${detPy.toFixed(0)}) overlaps slot ${s.index} rect(${s.rect.cx.toFixed(0)},${s.rect.cy.toFixed(0)}) dist=${dist.toFixed(0)} thresh=${thresh.toFixed(0)}`);
+              break;
+            }
+          }
           if (overlapsTracked) continue;
 
           const rect = detectionToRect(det, vw, vh);
-          const slot = emptySlots.shift();
-          slot.active = true;
-          slot.rect = rect;
-          logSlot(`[new hand] slot ${slot.index} cx=${rect.cx.toFixed(0)} cy=${rect.cy.toFixed(0)}`);
+          // Assign to the empty slot whose last-known position is closest.
+          // This gives spatial continuity: a returning hand goes back to its slot.
+          let bestSlot = emptySlots[0];
+          if (emptySlots.length > 1) {
+            let bestDist = Infinity;
+            for (const s of emptySlots) {
+              if (s.lastRect) {
+                const dx = s.lastRect.cx - detPx;
+                const dy = s.lastRect.cy - detPy;
+                const d = dx * dx + dy * dy;
+                if (d < bestDist) { bestDist = d; bestSlot = s; }
+              }
+            }
+          }
+          emptySlots.splice(emptySlots.indexOf(bestSlot), 1);
+          bestSlot.active = true;
+          bestSlot.rect = rect;
+          logSlot(`[new hand] slot ${bestSlot.index} cx=${rect.cx.toFixed(0)} cy=${rect.cy.toFixed(0)}`);
         }
       }
 
@@ -247,20 +268,15 @@ export class HandTracker {
           slot.rect = this.landmarksToRect(result.landmarks, vw, vh);
           return { landmarks: result.landmarks, handedness: result.handedness };
         } else {
+          slot.lastRect = slot.rect; // remember where this hand was
           slot.active = false;
           slot.landmarks = null;
           return null;
         }
       }));
 
-      // Stable handedness: slot 0 = Left, slot 1 = Right
-      // If both active and labels are swapped, swap slot tracking data
-      if (this.slots[0].active && this.slots[1].active &&
-          results[0]?.handedness === 'Right' && results[1]?.handedness === 'Left') {
-        [this.slots[0].rect, this.slots[1].rect] = [this.slots[1].rect, this.slots[0].rect];
-        [this.slots[0].landmarks, this.slots[1].landmarks] = [this.slots[1].landmarks, this.slots[0].landmarks];
-        [results[0], results[1]] = [results[1], results[0]];
-      }
+      // Slots are assigned by screen position (slot 0 = left side, slot 1 = right).
+      // No runtime handedness swap -- avoids the visible flip when hands leave/return.
 
       // Detect double-mapped hands: both slots locked onto the same physical hand.
       // Don't kill either slot (could be prayer hands). Instead, run palm detection
